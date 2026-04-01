@@ -1,0 +1,37 @@
+[
+  {
+    "id": "h1",
+    "title": "I'm Nobody! Who are you?",
+    "author": "Emily Dickinson (1830–1886)",
+    "text": "I'm Nobody! Who are you?\nAre you – Nobody – too?\nThen there's a pair of us!\nDon't tell! they'd advertise.\n\nHow dreary – to be – Somebody!\nHow public – like a Frog –\nTo tell one's name – the livelong June –\nTo an admiring Bog!",
+    "source": "Project Gutenberg (Public Domain)"
+  },
+  {
+    "id": "h2",
+    "title": "The Road Not Taken",
+    "author": "Robert Frost (1874–1963)",
+    "text": "Two roads diverged in a yellow wood,\nAnd sorry I could not travel both\nAnd be one traveler, long I stood\nAnd looked down one as far as I could\nTo where it bent in the undergrowth;",
+    "source": "Project Gutenberg (Public Domain)"
+  },
+  {
+    "id": "h3",
+    "title": "春の詩",
+    "author": "与謝野晶子 (1878–1942)",
+    "text": "やは肌のあつき血汐にふれも見でさびしからずや道を説く君",
+    "source": "青空文庫 (パブリックドメイン)"
+  },
+  {
+    "id": "h4",
+    "title": "秋",
+    "author": "萩原朔太郎 (1886–1942)",
+    "text": "あはれ秋風よ\n情(こころ)あらば伝えてよ\n——男ありて\n今日の夕餉に ひとり\n泣くと",
+    "source": "青空文庫 (パブリックドメイン)"
+  },
+  {
+    "id": "h5",
+    "title": "Ozymandias",
+    "author": "Percy Bysshe Shelley (1792–1822)",
+    "text": "I met a traveller from an antique land,\nWho said—\"Two vast and trunkless legs of stone\nStand in the desert. . . . Near them, on the sand,\nHalf sunk a shattered visage lies, whose frown,\nAnd wrinkled lip, and sneer of cold command,",
+    "source": "Project Gutenberg (Public Domain)"
+  }
+]
