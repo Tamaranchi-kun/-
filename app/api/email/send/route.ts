@@ -55,6 +55,7 @@ export async function POST(req: Request) {
 
   // バッチ送信（50件ずつ）
   let totalSent = 0;
+  let lastError: string | null = null;
   const eventInserts: { campaign_id: string; email: string; resend_email_id: string | null; event_type: string }[] = [];
 
   for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
     try {
       const { data: batchResult, error: sendError } = await resend.batch.send(messages);
       if (sendError) {
+        lastError = JSON.stringify(sendError);
         console.error('Batch send error:', sendError);
         continue;
       }
@@ -84,6 +86,7 @@ export async function POST(req: Request) {
       }
       totalSent += batch.length;
     } catch (err) {
+      lastError = String(err);
       console.error('Send error:', err);
     }
   }
@@ -99,5 +102,5 @@ export async function POST(req: Request) {
     .update({ status: 'sent', total_sent: totalSent, sent_at: new Date().toISOString() })
     .eq('id', campaign.id);
 
-  return NextResponse.json({ campaign_id: campaign.id, total_sent: totalSent });
+  return NextResponse.json({ campaign_id: campaign.id, total_sent: totalSent, ...(lastError ? { error_detail: lastError } : {}) });
 }
