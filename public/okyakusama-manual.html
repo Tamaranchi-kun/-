@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube字幕アップロード 認証手順｜株式会社クロボ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.8;
+    }
+    .header {
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .header h1 { font-size: 26px; margin-bottom: 8px; }
+    .header p { font-size: 14px; opacity: 0.85; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 4px 16px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .container { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    .intro-box {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-left: 5px solid #1a73e8;
+    }
+    .intro-box h2 { font-size: 18px; color: #1a73e8; margin-bottom: 12px; }
+    .intro-box p { color: #555; font-size: 15px; }
+
+    .time-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+
+    .step-card {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .step-number {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #1a73e8;
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-title { font-size: 19px; font-weight: bold; color: #222; }
+
+    .step-card img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #e0e0e0;
+      margin: 16px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .step-card p { color: #555; font-size: 15px; margin-bottom: 10px; }
+
+    .warning-box {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 14px 0;
+      font-size: 14px;
+      color: #5f4000;
+    }
+    .warning-box::before { content: '⚠️ '; }
+
+    .info-box {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 14px 0;
+      font-size: 14px;
+      color: #0d47a1;
+    }
+    .info-box::before { content: 'ℹ️ '; }
+
+    .caption-box {
+      background: #f1f8e9;
+      border: 1px solid #c5e1a5;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 10px 0;
+      font-size: 13px;
+      color: #33691e;
+    }
+
+    .action-arrow {
+      text-align: center;
+      font-size: 24px;
+      color: #1a73e8;
+      margin: 4px 0;
+    }
+
+    .sub-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 10px 0;
+    }
+    .sub-step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #e3f2fd;
+      color: #1a73e8;
+      font-size: 13px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .sub-step p { margin: 0; font-size: 15px; color: #444; }
+
+    .permission-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    .permission-table th {
+      background: #f5f5f5;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: bold;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .permission-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .ok { color: #2e7d32; font-weight: bold; }
+    .ng { color: #c62828; font-weight: bold; }
+
+    .faq { margin-top: 40px; }
+    .faq h2 { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #222; }
+    .faq-item {
+      background: white;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .faq-q { font-weight: bold; color: #1a73e8; margin-bottom: 8px; font-size: 15px; }
+    .faq-a { color: #555; font-size: 14px; }
+
+    .revoke-box {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin-top: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .revoke-box h2 { font-size: 18px; font-weight: bold; margin-bottom: 16px; }
+
+    .footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: #888;
+      font-size: 13px;
+    }
+    .footer a { color: #1a73e8; text-decoration: none; }
+
+    .complete-banner {
+      background: linear-gradient(135deg, #43a047, #1b5e20);
+      color: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .complete-banner h2 { font-size: 22px; margin-bottom: 8px; }
+    .complete-banner p { font-size: 14px; opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">株式会社クロボ</div>
+  <h1>🔐 YouTube字幕アップロード<br>認証手順のご案内</h1>
+  <p>お客様のYouTubeチャンネルに多言語字幕をアップロードするための認証手順です</p>
+</div>
+
+<div class="container">
+
+  <!-- はじめに -->
+  <div class="intro-box">
+    <h2>📋 はじめに</h2>
+    <p>
+      クロボでは、お客様のYouTubeチャンネルに多言語字幕・タイトル・概要欄をアップロードするサービスを提供しています。<br><br>
+      字幕をアップロードするために、<strong>一度だけ</strong>お客様のGoogleアカウントでの認証が必要です。<br>
+      認証後は、クロボが直接チャンネルに字幕をアップロードできるようになります。
+    </p>
+    <div class="time-badge">⏱ 所要時間：約30秒</div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <div class="step-title">認証リンクをクリックする</div>
+    </div>
+    <p>クロボからお送りしたメールに記載の <strong>認証リンク</strong> をクリックしてください。</p>
+    <p>ブラウザが開き、Googleのログイン画面へ進みます。</p>
+    <div class="info-box">クロボの担当者から個別にリンクをお送りします。メールをご確認ください。</div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <div class="step-title">「このアプリはGoogleで確認されていません」が表示されたら</div>
+    </div>
+    <img src="images/step3_warning.png" alt="このアプリはGoogleで確認されていません">
+    <div class="caption-box">▲ このような画面が表示されます</div>
+    <p>これはGoogleの審査前のアプリに表示される通常のメッセージです。クロボのシステムは安全です。</p>
+    <div class="sub-step">
+      <div class="sub-step-num">1</div>
+      <p>右下の <strong>「続行」</strong> をクリックしてください</p>
+    </div>
+    <div class="warning-box">「安全なページに戻る」は押さないでください。認証が完了しません。</div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <div class="step-title">アクセスを許可する</div>
+    </div>
+    <img src="images/step4_permission.png" alt="アクセス許可画面">
+    <div class="caption-box">▲ アクセス許可の確認画面</div>
+    <p>クロボのシステムがGoogleアカウントへのアクセスを求めています。</p>
+    <div class="sub-step">
+      <div class="sub-step-num">1</div>
+      <p>内容を確認して <strong>「続行」</strong> をクリックしてください</p>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <p style="font-weight:bold; margin-bottom: 10px;">📋 付与される権限について</p>
+      <table class="permission-table">
+        <tr>
+          <th>操作</th>
+          <th>可否</th>
+        </tr>
+        <tr>
+          <td>字幕ファイルのアップロード</td>
+          <td class="ok">✅ できます</td>
+        </tr>
+        <tr>
+          <td>タイトル・概要欄の更新</td>
+          <td class="ok">✅ できます</td>
+        </tr>
+        <tr>
+          <td>動画の削除・非公開化</td>
+          <td class="ng">❌ できません</td>
+        </tr>
+        <tr>
+          <td>パスワード・個人情報の取得</td>
+          <td class="ng">❌ できません</td>
+        </tr>
+        <tr>
+          <td>チャンネル設定の変更</td>
+          <td class="ng">❌ できません</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-number">4</div>
+      <div class="step-title">認証完了</div>
+    </div>
+    <img src="images/step5_complete.png" alt="認証完了画面">
+    <div class="caption-box">▲ 認証完了画面</div>
+    <p>「✅ 認証が完了しました」と表示されたら認証は完了です。</p>
+    <p><strong>このページを閉じていただいて構いません。</strong></p>
+    <p style="margin-top: 10px;">以降、クロボが字幕をアップロードする際にこの認証情報を使用します。<br>次回からこの操作は不要です。</p>
+  </div>
+
+  <!-- 権限を取り消す方法 -->
+  <div class="revoke-box">
+    <h2>🔓 権限を取り消す方法</h2>
+    <p style="color:#555; margin-bottom: 12px;">認証を取り消したい場合は、いつでも以下の手順で取り消せます。</p>
+    <div class="sub-step">
+      <div class="sub-step-num">1</div>
+      <p><a href="https://myaccount.google.com/permissions" target="_blank">Googleアカウントのセキュリティ設定</a> を開く</p>
+    </div>
+    <div class="sub-step">
+      <div class="sub-step-num">2</div>
+      <p>「サードパーティへのアクセス」から対象のアプリを選択</p>
+    </div>
+    <div class="sub-step">
+      <div class="sub-step-num">3</div>
+      <p>「アクセスを削除」をクリック</p>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <h2>❓ よくある質問</h2>
+    <div class="faq-item">
+      <div class="faq-q">Q. 認証は何回必要ですか？</div>
+      <div class="faq-a">原則1回のみです。一度認証いただければ、以降は都度認証する必要はありません。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Q. 「このアプリはGoogleで確認されていません」と出て不安です。</div>
+      <div class="faq-a">これはGoogleによる審査が完了する前のアプリに表示される通常のメッセージです。クロボのシステムは安全です。担当者にご確認の上、「続行」をクリックしてください。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Q. どのGoogleアカウントでログインすればいいですか？</div>
+      <div class="faq-a">字幕をアップロードしたいYouTubeチャンネルを所有しているGoogleアカウントでログインしてください。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Q. セキュリティは大丈夫ですか？</div>
+      <div class="faq-a">認証情報はGoogleの公式OAuth 2.0という安全な仕組みで管理されています。クロボがお客様のパスワードを取得することは一切ありません。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Q. 複数のチャンネルがある場合はどうすればいいですか？</div>
+      <div class="faq-a">チャンネルごとに認証が必要です。担当のクロボスタッフにご相談ください。</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>ご不明な点がございましたら、担当のクロボスタッフまでお気軽にご連絡ください。</p>
+  <p style="margin-top: 8px;"><strong>株式会社クロボ</strong></p>
+</div>
+
+</body>
+</html>

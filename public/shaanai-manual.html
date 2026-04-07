@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>【社内用】字幕アップロードシステム 操作マニュアル</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      line-height: 1.8;
+    }
+    .header {
+      background: linear-gradient(135deg, #37474f, #1a237e);
+      color: white;
+      padding: 36px 20px;
+      text-align: center;
+    }
+    .header h1 { font-size: 24px; margin-bottom: 8px; }
+    .header p { font-size: 13px; opacity: 0.8; }
+    .badge {
+      display: inline-block;
+      background: #ef5350;
+      border-radius: 4px;
+      padding: 3px 12px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+
+    .container { max-width: 820px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    /* TOC */
+    .toc {
+      background: white;
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 36px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .toc h2 { font-size: 16px; margin-bottom: 14px; color: #444; }
+    .toc ul { list-style: none; }
+    .toc li { padding: 4px 0; font-size: 14px; }
+    .toc a { color: #1a73e8; text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* Section */
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    .section-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .blue { background: #e3f2fd; }
+    .red { background: #ffebee; }
+    .green { background: #e8f5e9; }
+    .orange { background: #fff3e0; }
+
+    .section-title { font-size: 20px; font-weight: bold; color: #222; }
+    .section-sub { font-size: 13px; color: #888; }
+
+    /* Steps */
+    .step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .step-left { display: flex; flex-direction: column; align-items: center; }
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #1a73e8;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-line {
+      width: 2px;
+      flex: 1;
+      background: #e0e0e0;
+      margin: 6px 0;
+      min-height: 20px;
+    }
+    .step-content { flex: 1; padding-top: 4px; }
+    .step-content h3 { font-size: 16px; margin-bottom: 8px; color: #222; }
+    .step-content p { color: #555; font-size: 14px; margin-bottom: 8px; }
+
+    img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #e0e0e0;
+      margin: 12px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .img-caption {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      margin: -6px 0 12px;
+    }
+
+    .code-box {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #1a73e8;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 14px;
+      color: #0d47a1;
+    }
+    .warning-box {
+      background: #fff8e1;
+      border-left: 4px solid #f9a825;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 14px;
+      color: #5f4000;
+    }
+    .success-box {
+      background: #e8f5e9;
+      border-left: 4px solid #43a047;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 14px;
+      color: #1b5e20;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 14px 0;
+    }
+    th {
+      background: #f5f5f5;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: bold;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Mail template */
+    .mail-box {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px 24px;
+      font-size: 14px;
+      color: #333;
+      line-height: 2;
+      margin: 14px 0;
+      white-space: pre-line;
+    }
+    .mail-subject {
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    /* Error table */
+    .error-tag {
+      display: inline-block;
+      background: #ffebee;
+      color: #c62828;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+      font-size: 12px;
+    }
+
+    /* Mode comparison */
+    .mode-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 16px 0;
+    }
+    .mode-card {
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+    }
+    .mode-card.normal { background: #e3f2fd; border: 2px solid #90caf9; }
+    .mode-card.brand { background: #fce4ec; border: 2px solid #f48fb1; }
+    .mode-card h3 { font-size: 15px; margin-bottom: 8px; }
+    .mode-card p { font-size: 13px; color: #555; }
+    .mode-card .mode-key { font-size: 22px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">社内用 CONFIDENTIAL</div>
+  <h1>⚙️ 字幕アップロードシステム<br>操作マニュアル</h1>
+  <p>対象：クロボ社内スタッフ ／ 最終更新：2026年4月</p>
+</div>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>📑 目次</h2>
+    <ul>
+      <li>1. <a href="#overview">システム概要</a></li>
+      <li>2. <a href="#normal">通常アカウントへのアップロード（従来通り）</a></li>
+      <li>3. <a href="#brand">ブランドアカウントへのアップロード（新方式）</a></li>
+      <li>4. <a href="#files">ファイルの命名規則</a></li>
+      <li>5. <a href="#errors">よくあるエラーと対処法</a></li>
+    </ul>
+  </div>
+
+  <!-- 1. 概要 -->
+  <div class="section" id="overview">
+    <div class="section-header">
+      <div class="section-icon blue">📋</div>
+      <div>
+        <div class="section-title">1. システム概要</div>
+        <div class="section-sub">アカウント種別による操作の違い</div>
+      </div>
+    </div>
+
+    <div class="mode-cards">
+      <div class="mode-card normal">
+        <div class="mode-key">📌</div>
+        <h3>通常アカウント</h3>
+        <p>お客様IDを<strong>入力しない</strong><br>従来通りの操作</p>
+      </div>
+      <div class="mode-card brand">
+        <div class="mode-key">🔑</div>
+        <h3>ブランドアカウント</h3>
+        <p>お客様IDを<strong>入力する</strong><br>事前認証が必要</p>
+      </div>
+    </div>
+
+    <div class="info-box">
+      💡 アプリの画面でお客様IDが空白の場合は「通常アカウントモード」、IDを入力すると「新システムモード」に自動切り替えされます。
+    </div>
+  </div>
+
+  <!-- 2. 通常アカウント -->
+  <div class="section" id="normal">
+    <div class="section-header">
+      <div class="section-icon blue">📌</div>
+      <div>
+        <div class="section-title">2. 通常アカウントへのアップロード</div>
+        <div class="section-sub">お客様IDは入力不要・従来通りの操作</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <h3>アプリにアクセス</h3>
+        <p><a href="https://translationpjt.web.app/caption" target="_blank">https://translationpjt.web.app/caption</a> を開く</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <h3>お客様IDは空白のまま</h3>
+        <p>「お客様ID」欄は<strong>入力しない</strong>でください。</p>
+        <div class="success-box">✅ 「通常アカウントモード（Managerトークン）でアップロードします」と表示されていればOK</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <h3>YouTube URLを入力</h3>
+        <p>アップロードしたい動画のURLを入力すると、動画情報が自動表示されます。</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <h3>ファイルを選択してアップロード</h3>
+        <p>字幕・TDファイルが入ったフォルダを選択 → 「Upload to Youtube」をクリック → アップロード項目を選択して完了</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ブランドアカウント -->
+  <div class="section" id="brand">
+    <div class="section-header">
+      <div class="section-icon red">🔑</div>
+      <div>
+        <div class="section-title">3. ブランドアカウントへのアップロード</div>
+        <div class="section-sub">事前に1回だけお客様の認証が必要</div>
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <h3>お客様IDを決める</h3>
+        <p><strong>お客様のチャンネル名をアルファベット（ローマ字）にしたもの</strong>をIDとして使用します。一度決めたら変更しないでください。</p>
+        <table>
+          <tr><th>チャンネル名</th><th>お客様ID</th></tr>
+          <tr><td>さいとうなおき</td><td>saito-naoki</td></tr>
+          <tr><td>山田チャンネル</td><td>yamada-channel</td></tr>
+          <tr><td>B-life</td><td>b-life</td></tr>
+        </table>
+        <div class="info-box">
+          💡 <strong>命名ルール</strong><br>
+          ・チャンネル名をローマ字（ヘボン式）またはアルファベットに変換<br>
+          ・スペースはハイフン <code>-</code> に置き換える<br>
+          ・すべて小文字<br>
+          ・記号（！？など）は除く
+        </div>
+        <div class="warning-box">⚠️ 同じお客様に対して、毎回同じIDを使用してください。</div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <h3>認証リンクを生成する</h3>
+        <p>以下のURLをブラウザで開きます。</p>
+        <p><a href="https://translationpjt.web.app/oauth.html" target="_blank">https://translationpjt.web.app/oauth.html</a></p>
+        <img src="images/step1_input.png" alt="お客様ID入力画面">
+        <p class="img-caption">▲ お客様IDを入力して「認証リンクを生成する」をクリック</p>
+        <img src="images/step2_generated.png" alt="リンク生成後の画面">
+        <p class="img-caption">▲ 生成されたURLをコピーしてお客様に送付</p>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <h3>お客様に認証リンクを送る</h3>
+        <p>以下のメールテンプレートをコピーして送付してください。</p>
+        <div class="mail-subject">📧 件名：YouTubeチャンネルへの字幕アップロード認証のお願い</div>
+        <div class="mail-box">○○様
+
+いつもお世話になっております。クロボです。
+
+○○様のYouTubeチャンネルに字幕をアップロードするために、
+一度だけ以下のリンクから認証をお願いいたします。
+
+▼ 認証リンク（所要時間：約30秒）
+【ここにURLを貼り付け】
+
+【手順】
+1. 上記リンクをクリック
+2. チャンネルを所有しているGoogleアカウントでログイン
+3. 「続行」→「続行」をクリック
+4. 「認証が完了しました」と表示されたら完了です
+
+※ この認証は1回限りで、以降は不要です。
+※ 権限はいつでもGoogleアカウントの設定から取り消せます。
+
+よろしくお願いいたします。
+
+株式会社クロボ</div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <h3>認証完了を確認する</h3>
+        <p>お客様から完了連絡が来たら <a href="https://console.firebase.google.com/project/youtubetranslationpjt/firestore" target="_blank">Firebase Console（Firestore）</a> で確認します。</p>
+        <p><code>customerTokens</code> コレクションにお客様IDのドキュメントが作成されていればOKです。</p>
+        <div class="success-box">✅ isActive: true になっていれば認証完了</div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">5</div><div class="step-line"></div></div>
+      <div class="step-content">
+        <h3>アップロードを実行する</h3>
+        <p><a href="https://translationpjt.web.app/caption" target="_blank">アプリ</a> を開き、お客様IDを入力してアップロードします。</p>
+        <div class="success-box">✅ 「新システム（お客様OAuthトークン）でアップロードします」と表示されていればOK</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. ファイル命名規則 -->
+  <div class="section" id="files">
+    <div class="section-header">
+      <div class="section-icon green">📁</div>
+      <div>
+        <div class="section-title">4. ファイルの命名規則</div>
+        <div class="section-sub">正しい名前でないと読み込まれません</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:12px; font-size:14px;">ファイル名は以下の形式にしてください：</p>
+    <div class="code-box">動画名_言語_種別.拡張子</div>
+
+    <table>
+      <tr><th>種別</th><th>意味</th><th>拡張子</th><th>例</th></tr>
+      <tr><td>字幕</td><td>字幕ファイル</td><td>.srt</td><td>video_英語_字幕.srt</td></tr>
+      <tr><td>TD</td><td>タイトル・概要欄</td><td>.txt</td><td>video_英語_TD.txt</td></tr>
+    </table>
+
+    <p style="margin-top:20px; font-weight:bold; font-size:14px; margin-bottom:10px;">📝 TDファイルの書き方</p>
+    <div class="code-box">--TITLE--
+ここにタイトルを書く
+
+--DESCRIPTION--
+ここに概要欄を書く
+
+--TAGS--
+（現在未使用）</div>
+  </div>
+
+  <!-- 5. エラー対処 -->
+  <div class="section" id="errors">
+    <div class="section-header">
+      <div class="section-icon orange">⚠️</div>
+      <div>
+        <div class="section-title">5. よくあるエラーと対処法</div>
+      </div>
+    </div>
+
+    <table>
+      <tr><th>エラー</th><th>原因</th><th>対処法</th></tr>
+      <tr>
+        <td><span class="error-tag">トークンが見つかりません</span></td>
+        <td>お客様がまだ認証していない</td>
+        <td>メールを送って認証してもらう</td>
+      </tr>
+      <tr>
+        <td><span class="error-tag">不正なリクエストです</span></td>
+        <td>システムエラー</td>
+        <td>開発担当に連絡</td>
+      </tr>
+      <tr>
+        <td>動画情報が表示されない</td>
+        <td>URLが間違っている</td>
+        <td>YouTubeのURLに <code>?v=</code> が含まれているか確認</td>
+      </tr>
+      <tr>
+        <td>ファイルが選択されない</td>
+        <td>命名規則が間違っている</td>
+        <td>「動画名_言語_種別.拡張子」の形式を確認</td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p>株式会社クロボ 社内用ドキュメント ／ 無断転載禁止</p>
+</div>
+
+</body>
+</html>
