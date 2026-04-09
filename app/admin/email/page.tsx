@@ -188,18 +188,26 @@ function ListPanel() {
     const parseCols = (line: string) => line.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
 
     // ヘッダー行を検出して列インデックスを特定
-    let emailIdx = 0, nameIdx = 1, companyIdx = 2;
+    let emailIdx = 0, nameIdx = -1, companyIdx = -1;
     let dataStart = 0;
-    const firstCols = parseCols(lines[0]).map((c) => c.toLowerCase());
-    const hasHeader = firstCols.some((c) => ['email', 'メール', 'mail', 'e-mail'].includes(c));
-    if (hasHeader) {
-      dataStart = 1;
-      emailIdx = firstCols.findIndex((c) => ['email', 'メール', 'mail', 'e-mail'].includes(c));
-      nameIdx = firstCols.findIndex((c) => ['name', '名前', '氏名', '担当者'].includes(c));
-      companyIdx = firstCols.findIndex((c) => ['company', '会社', '会社名', 'company_name'].includes(c));
-      if (emailIdx === -1) emailIdx = 0;
-      if (nameIdx === -1) nameIdx = -1;
-      if (companyIdx === -1) companyIdx = -1;
+
+    // 最初の10行以内でヘッダー行を探す（メールアドレスを含む列があるか）
+    const isEmailCol = (s: string) => /email|メールアドレス|mail/i.test(s);
+    const isNameCol = (s: string) => /^(name|名前|氏名|担当者名)$/i.test(s);
+    const isCompanyCol = (s: string) => /^(company|会社名|company_name)$/i.test(s);
+
+    for (let li = 0; li < Math.min(5, lines.length); li++) {
+      const cols = parseCols(lines[li]);
+      const ei = cols.findIndex((c) => isEmailCol(c));
+      if (ei !== -1) {
+        dataStart = li + 1;
+        emailIdx = ei;
+        const ni = cols.findIndex((c) => isNameCol(c));
+        const ci = cols.findIndex((c) => isCompanyCol(c));
+        if (ni !== -1) nameIdx = ni;
+        if (ci !== -1) companyIdx = ci;
+        break;
+      }
     }
 
     const dataLines = lines.slice(dataStart);
