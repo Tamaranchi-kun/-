@@ -180,23 +180,44 @@ function ListPanel() {
     fetchLists();
   }
 
+  // RFC4180準拠のCSVパーサー（ダブルクォート・改行含むフィールド対応）
+  function parseCsv(text: string): string[][] {
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inQuotes) {
+        if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { field += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ',') { row.push(field.trim()); field = ''; }
+        else if (ch === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; }
+        else if (ch !== '\r') { field += ch; }
+      }
+    }
+    if (field || row.length > 0) { row.push(field.trim()); rows.push(row); }
+    return rows.filter((r) => r.some((c) => c));
+  }
+
   // CSVテキストをパースしてインポート
   async function importFromText(csv: string) {
-    const lines = csv.split('\n').map((l) => l.trim()).filter(Boolean);
-    if (lines.length === 0) { setMessage('有効なデータが見つかりません'); return; }
-
-    const parseCols = (line: string) => line.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
-
-    // ヘッダー行を検出して列インデックスを特定
-    let emailIdxList: number[] = [], nameIdx = -1, companyIdx = -1;
-    let dataStart = 0;
+    const rows = parseCsv(csv);
+    if (rows.length === 0) { setMessage('有効なデータが見つかりません'); return; }
 
     const isEmailCol = (s: string) => /email|メールアドレス|mail/i.test(s);
     const isNameCol = (s: string) => /^(name|名前|氏名|担当者名)$/i.test(s);
     const isCompanyCol = (s: string) => /^(company|会社名|company_name)$/i.test(s);
 
-    for (let li = 0; li < Math.min(5, lines.length); li++) {
-      const cols = parseCols(lines[li]);
+    // ヘッダー行を検出
+    let emailIdxList: number[] = [], nameIdx = -1, companyIdx = -1;
+    let dataStart = 0;
+
+    for (let li = 0; li < Math.min(5, rows.length); li++) {
+      const cols = rows[li];
       const emailCols = cols.reduce<number[]>((acc, c, i) => { if (isEmailCol(c)) acc.push(i); return acc; }, []);
       if (emailCols.length > 0) {
         dataStart = li + 1;
@@ -210,10 +231,8 @@ function ListPanel() {
     }
     if (emailIdxList.length === 0) emailIdxList = [0];
 
-    const dataLines = lines.slice(dataStart);
     // メール列が複数ある場合は1行から複数の受信者を生成
-    const recipients = dataLines.flatMap((line) => {
-      const cols = parseCols(line);
+    const recipients = rows.slice(dataStart).flatMap((cols) => {
       return emailIdxList.map((ei) => ({
         email: cols[ei] ?? '',
         name: nameIdx >= 0 ? (cols[nameIdx] || null) : null,
