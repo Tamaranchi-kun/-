@@ -1,17 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-type Campaign = {
+type CampaignStats = {
   id: string;
   subject: string;
   status: string;
   total_sent: number;
   created_at: string;
   sent_at: string | null;
-};
-
-type CampaignStats = Campaign & {
   opened: number;
   bounced: number;
   open_rate: string;
@@ -25,14 +22,19 @@ type ListGroup = {
   member_count: number;
 };
 
+type Recipient = {
+  email: string;
+  name: string | null;
+  company_name: string | null;
+  created_at: string;
+};
+
 type Tab = 'send' | 'list' | 'stats';
 
 const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY ?? '';
 
 export default function EmailAdminPage() {
   const [tab, setTab] = useState<Tab>('send');
-
-  // 送信フォームの状態をここで管理（タブ切り替えで消えないようにする）
   const [form, setForm] = useState({
     subject: '',
     from_name: '',
@@ -52,40 +54,23 @@ export default function EmailAdminPage() {
               key={t}
               onClick={() => setTab(t)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                tab === t
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                tab === t ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
               {t === 'send' ? '送信' : t === 'list' ? '受信者リスト' : '効果検証'}
             </button>
           ))}
         </div>
-
-        {/* タブを全部レンダリングしてCSSで表示切り替え（状態保持のため） */}
-        <div className={tab === 'send' ? '' : 'hidden'}>
-          <SendPanel form={form} setForm={setForm} />
-        </div>
-        <div className={tab === 'list' ? '' : 'hidden'}>
-          <ListPanel />
-        </div>
-        <div className={tab === 'stats' ? '' : 'hidden'}>
-          <StatsPanel />
-        </div>
+        <div className={tab === 'send' ? '' : 'hidden'}><SendPanel form={form} setForm={setForm} /></div>
+        <div className={tab === 'list' ? '' : 'hidden'}><ListPanel /></div>
+        <div className={tab === 'stats' ? '' : 'hidden'}><StatsPanel /></div>
       </div>
     </div>
   );
 }
 
 // ── 送信パネル ──────────────────────────────────────────────
-type FormState = {
-  subject: string;
-  from_name: string;
-  from_email: string;
-  body_html: string;
-  body_text: string;
-  list_id: string;
-};
+type FormState = { subject: string; from_name: string; from_email: string; body_html: string; body_text: string; list_id: string };
 
 function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
   const [sending, setSending] = useState(false);
@@ -94,14 +79,11 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
 
   useEffect(() => {
     fetch('/api/email/lists', { headers: { 'x-admin-key': ADMIN_KEY } })
-      .then((r) => r.json())
-      .then((data) => setLists(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .then((r) => r.json()).then((d) => setLists(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   async function handleSend() {
-    setSending(true);
-    setResult(null);
+    setSending(true); setResult(null);
     try {
       const res = await fetch('/api/email/send', {
         method: 'POST',
@@ -115,14 +97,9 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
       } else {
         setResult({ ok: false, message: json.error_detail ?? json.error ?? '送信失敗' });
       }
-    } catch {
-      setResult({ ok: false, message: '通信エラー' });
-    } finally {
-      setSending(false);
-    }
+    } catch { setResult({ ok: false, message: '通信エラー' }); }
+    finally { setSending(false); }
   }
-
-  const selectedList = lists.find((l) => l.id === form.list_id);
 
   return (
     <div className="bg-white rounded-lg shadow p-6 space-y-4">
@@ -133,50 +110,26 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
       <Field label="件名" value={form.subject} onChange={(v) => setForm({ ...form, subject: v })} placeholder="重要なお知らせ" />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">送信先リスト</label>
-        <select
-          value={form.list_id}
-          onChange={(e) => setForm({ ...form, list_id: e.target.value })}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-        >
+        <select value={form.list_id} onChange={(e) => setForm({ ...form, list_id: e.target.value })} className="w-full border border-gray-300 rounded px-3 py-2 text-sm">
           <option value="">すべての受信者</option>
-          {lists.map((l) => (
-            <option key={l.id} value={l.id}>{l.name}（{l.member_count}件）</option>
-          ))}
+          {lists.map((l) => <option key={l.id} value={l.id}>{l.name}（{l.member_count}件）</option>)}
         </select>
-        {form.list_id && selectedList && (
-          <p className="text-xs text-gray-400 mt-1">対象: {selectedList.member_count}件</p>
-        )}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">本文 (HTML)</label>
-        <textarea
-          value={form.body_html}
-          onChange={(e) => setForm({ ...form, body_html: e.target.value })}
-          rows={8}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono"
-          placeholder="<p>こんにちは！</p>"
-        />
+        <textarea value={form.body_html} onChange={(e) => setForm({ ...form, body_html: e.target.value })} rows={8}
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono" placeholder="<p>こんにちは！</p>" />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">本文 (テキスト・任意)</label>
-        <textarea
-          value={form.body_text}
-          onChange={(e) => setForm({ ...form, body_text: e.target.value })}
-          rows={4}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-          placeholder="プレーンテキスト版（迷惑メール対策に有効）"
-        />
+        <textarea value={form.body_text} onChange={(e) => setForm({ ...form, body_text: e.target.value })} rows={4}
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="プレーンテキスト版（迷惑メール対策に有効）" />
       </div>
       {result && (
-        <div className={`rounded px-4 py-3 text-sm ${result.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-          {result.message}
-        </div>
+        <div className={`rounded px-4 py-3 text-sm ${result.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{result.message}</div>
       )}
-      <button
-        onClick={handleSend}
-        disabled={sending || !form.subject || !form.body_html || !form.from_name || !form.from_email}
-        className="w-full bg-blue-600 text-white rounded py-2 px-4 font-medium disabled:opacity-50 hover:bg-blue-700 transition-colors"
-      >
+      <button onClick={handleSend} disabled={sending || !form.subject || !form.body_html || !form.from_name || !form.from_email}
+        className="w-full bg-blue-600 text-white rounded py-2 px-4 font-medium disabled:opacity-50 hover:bg-blue-700 transition-colors">
         {sending ? '送信中...' : '一括送信'}
       </button>
     </div>
@@ -186,19 +139,20 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
 // ── 受信者リストパネル ────────────────────────────────────
 function ListPanel() {
   const [lists, setLists] = useState<ListGroup[]>([]);
-  const [selectedListId, setSelectedListId] = useState<string>('');
+  const [selectedListId, setSelectedListId] = useState('');
   const [newListName, setNewListName] = useState('');
-  const [emails, setEmails] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [message, setMessage] = useState('');
-  const [recipients, setRecipients] = useState<{ email: string; name: string | null; created_at: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  // インポートモード
+  const [importMode, setImportMode] = useState<'text' | 'csv' | 'sheets'>('text');
+  const [textInput, setTextInput] = useState('');
+  const [sheetsUrl, setSheetsUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchLists = useCallback(async () => {
     const res = await fetch('/api/email/lists', { headers: { 'x-admin-key': ADMIN_KEY } });
-    if (res.ok) {
-      const data = await res.json();
-      setLists(Array.isArray(data) ? data : []);
-    }
+    if (res.ok) { const d = await res.json(); setLists(Array.isArray(d) ? d : []); }
   }, []);
 
   const fetchRecipients = useCallback(async (listId: string) => {
@@ -210,47 +164,90 @@ function ListPanel() {
   useEffect(() => { fetchLists(); }, [fetchLists]);
   useEffect(() => { fetchRecipients(selectedListId); }, [selectedListId, fetchRecipients]);
 
-  async function handleCreateList() {
+  async function createList() {
     if (!newListName.trim()) return;
     const res = await fetch('/api/email/lists', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
       body: JSON.stringify({ name: newListName.trim() }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      setNewListName('');
-      await fetchLists();
-      setSelectedListId(data.id);
-    }
+    if (res.ok) { const d = await res.json(); setNewListName(''); await fetchLists(); setSelectedListId(d.id); }
   }
 
-  async function handleDeleteList(id: string) {
+  async function deleteList(id: string) {
     if (!confirm('このリストを削除しますか？（受信者データは残ります）')) return;
     await fetch(`/api/email/lists/${id}`, { method: 'DELETE', headers: { 'x-admin-key': ADMIN_KEY } });
-    setSelectedListId('');
+    if (selectedListId === id) setSelectedListId('');
     fetchLists();
   }
 
-  async function handleImport() {
+  // CSVテキストをパースしてインポート
+  async function importFromText(csv: string) {
+    const lines = csv.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) { setMessage('有効なデータが見つかりません'); return; }
+
+    const parseCols = (line: string) => line.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
+
+    // ヘッダー行を検出して列インデックスを特定
+    let emailIdx = 0, nameIdx = 1, companyIdx = 2;
+    let dataStart = 0;
+    const firstCols = parseCols(lines[0]).map((c) => c.toLowerCase());
+    const hasHeader = firstCols.some((c) => ['email', 'メール', 'mail', 'e-mail'].includes(c));
+    if (hasHeader) {
+      dataStart = 1;
+      emailIdx = firstCols.findIndex((c) => ['email', 'メール', 'mail', 'e-mail'].includes(c));
+      nameIdx = firstCols.findIndex((c) => ['name', '名前', '氏名', '担当者'].includes(c));
+      companyIdx = firstCols.findIndex((c) => ['company', '会社', '会社名', 'company_name'].includes(c));
+      if (emailIdx === -1) emailIdx = 0;
+      if (nameIdx === -1) nameIdx = -1;
+      if (companyIdx === -1) companyIdx = -1;
+    }
+
+    const dataLines = lines.slice(dataStart);
+    const recipients = dataLines.map((line) => {
+      const cols = parseCols(line);
+      return {
+        email: cols[emailIdx] ?? '',
+        name: nameIdx >= 0 ? (cols[nameIdx] || null) : null,
+        company_name: companyIdx >= 0 ? (cols[companyIdx] || null) : null,
+      };
+    }).filter((r) => r.email && r.email.includes('@'));
+    if (recipients.length === 0) { setMessage('有効なメールアドレスが見つかりません'); return; }
+
     setLoading(true);
-    const lines = emails.split('\n').map((l) => l.trim()).filter(Boolean);
-    const list = lines.map((line) => {
-      const [email, name] = line.split(',').map((s) => s.trim());
-      return { email, name: name || null, list_id: selectedListId || null };
-    });
     const res = await fetch('/api/email/recipients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
-      body: JSON.stringify({ recipients: list }),
+      body: JSON.stringify({ recipients, list_id: selectedListId || null }),
     });
     const json = await res.json();
     setMessage(res.ok ? `${json.inserted}件追加しました` : json.error ?? 'エラー');
-    setEmails('');
-    fetchRecipients(selectedListId);
-    fetchLists();
+    setTextInput(''); setSheetsUrl('');
+    fetchRecipients(selectedListId); fetchLists();
     setLoading(false);
   }
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { const text = ev.target?.result as string; importFromText(text); };
+    reader.readAsText(file, 'UTF-8');
+    e.target.value = '';
+  }
+
+  async function handleSheetsImport() {
+    setLoading(true);
+    const res = await fetch('/api/email/import-sheets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      body: JSON.stringify({ url: sheetsUrl }),
+    });
+    const json = await res.json();
+    if (!res.ok) { setMessage(json.error ?? 'エラー'); setLoading(false); return; }
+    await importFromText(json.csv);
+  }
+
+  const selectedList = lists.find((l) => l.id === selectedListId);
 
   return (
     <div className="space-y-6">
@@ -258,69 +255,94 @@ function ListPanel() {
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">リスト管理</h2>
         <div className="flex gap-2 mb-4">
-          <input
-            type="text"
-            value={newListName}
-            onChange={(e) => setNewListName(e.target.value)}
+          <input type="text" value={newListName} onChange={(e) => setNewListName(e.target.value)}
             placeholder="新しいリスト名（例：営業先リスト）"
             className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
-          />
-          <button
-            onClick={handleCreateList}
-            disabled={!newListName.trim()}
-            className="bg-blue-600 text-white rounded px-4 py-2 text-sm font-medium disabled:opacity-50 hover:bg-blue-700"
-          >
-            作成
-          </button>
+            onKeyDown={(e) => e.key === 'Enter' && createList()} />
+          <button onClick={createList} disabled={!newListName.trim()}
+            className="bg-blue-600 text-white rounded px-4 py-2 text-sm font-medium disabled:opacity-50 hover:bg-blue-700">作成</button>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedListId('')}
-            className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-              selectedListId === '' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
-            }`}
-          >
+          <button onClick={() => setSelectedListId('')}
+            className={`px-3 py-1 rounded-full text-sm border transition-colors ${selectedListId === '' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
             すべて
           </button>
           {lists.map((l) => (
             <div key={l.id} className="flex items-center gap-1">
-              <button
-                onClick={() => setSelectedListId(l.id)}
-                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                  selectedListId === l.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
-                }`}
-              >
+              <button onClick={() => setSelectedListId(l.id)}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${selectedListId === l.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
                 {l.name}（{l.member_count}）
               </button>
-              <button onClick={() => handleDeleteList(l.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+              <button onClick={() => deleteList(l.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
             </div>
           ))}
         </div>
       </div>
 
-      {/* メールアドレス追加 */}
+      {/* インポート */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-1">メールアドレスを追加</h2>
-        <p className="text-xs text-gray-500 mb-2">
-          1行1件。「メール, 名前」の形式でも可。
-          {selectedListId ? ` → 「${lists.find(l => l.id === selectedListId)?.name}」に追加` : ' → すべての受信者として追加'}
-        </p>
-        <textarea
-          value={emails}
-          onChange={(e) => setEmails(e.target.value)}
-          rows={6}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono"
-          placeholder={"example@gmail.com\nuser@company.com, 山田太郎"}
-        />
-        {message && <p className="text-sm text-green-600 mt-2">{message}</p>}
-        <button
-          onClick={handleImport}
-          disabled={loading || !emails.trim()}
-          className="mt-3 bg-blue-600 text-white rounded py-2 px-4 text-sm font-medium disabled:opacity-50 hover:bg-blue-700 transition-colors"
-        >
-          {loading ? '追加中...' : 'インポート'}
-        </button>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700">
+            受信者を追加
+            {selectedList && <span className="ml-2 text-blue-600">→ 「{selectedList.name}」に追加</span>}
+            {!selectedListId && <span className="ml-2 text-gray-400">（リスト未選択）</span>}
+          </h2>
+          <div className="flex gap-1">
+            {(['text', 'csv', 'sheets'] as const).map((m) => (
+              <button key={m} onClick={() => setImportMode(m)}
+                className={`px-3 py-1 text-xs rounded ${importMode === m ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {m === 'text' ? '手入力' : m === 'csv' ? 'CSVファイル' : 'Googleスプレッドシート'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {importMode === 'text' && (
+          <>
+            <p className="text-xs text-gray-500 mb-2">1行1件。カンマ区切りで入力（メールアドレス必須、名前・会社名は任意）</p>
+            <textarea value={textInput} onChange={(e) => setTextInput(e.target.value)} rows={6}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono"
+              placeholder={"example@gmail.com, 山田太郎, 株式会社サンプル\nuser@company.com"} />
+            <button onClick={() => importFromText(textInput)} disabled={loading || !textInput.trim()}
+              className="mt-3 bg-blue-600 text-white rounded py-2 px-4 text-sm font-medium disabled:opacity-50 hover:bg-blue-700">
+              {loading ? '追加中...' : 'インポート'}
+            </button>
+          </>
+        )}
+
+        {importMode === 'csv' && (
+          <>
+            <p className="text-xs text-gray-500 mb-3">
+              ヘッダー行がある場合は自動検出。ない場合は1列目をメールアドレスとして読み込みます。
+            </p>
+            <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+            <button onClick={() => fileInputRef.current?.click()} disabled={loading}
+              className="bg-blue-600 text-white rounded py-2 px-6 text-sm font-medium disabled:opacity-50 hover:bg-blue-700">
+              {loading ? '取り込み中...' : 'CSVファイルを選択'}
+            </button>
+          </>
+        )}
+
+        {importMode === 'sheets' && (
+          <>
+            <div className="bg-blue-50 rounded p-3 mb-3 text-xs text-blue-700 space-y-1">
+              <p className="font-semibold">Googleスプレッドシートの準備手順：</p>
+              <p>1. スプレッドシートを開く → ファイル → 共有 → <strong>ウェブに公開</strong></p>
+              <p>2. 「シート全体」「カンマ区切りの値（.csv）」を選択して <strong>公開</strong></p>
+              <p>3. 表示されたURLをコピーして下に貼り付け</p>
+              <p className="text-blue-500">※ ヘッダー行（email/name/company等）があれば自動検出。なければ1列目をメールとして取り込みます。</p>
+            </div>
+            <input type="text" value={sheetsUrl} onChange={(e) => setSheetsUrl(e.target.value)}
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-3" />
+            <button onClick={handleSheetsImport} disabled={loading || !sheetsUrl.trim()}
+              className="bg-green-600 text-white rounded py-2 px-4 text-sm font-medium disabled:opacity-50 hover:bg-green-700">
+              {loading ? '取り込み中...' : 'スプレッドシートから取り込む'}
+            </button>
+          </>
+        )}
+
+        {message && <p className={`text-sm mt-3 ${message.includes('件') ? 'text-green-600' : 'text-red-500'}`}>{message}</p>}
       </div>
 
       {/* 受信者一覧 */}
@@ -335,6 +357,7 @@ function ListPanel() {
               <tr>
                 <th className="text-left px-4 py-2 text-xs text-gray-500">メールアドレス</th>
                 <th className="text-left px-4 py-2 text-xs text-gray-500">名前</th>
+                <th className="text-left px-4 py-2 text-xs text-gray-500">会社名</th>
                 <th className="text-left px-4 py-2 text-xs text-gray-500">登録日</th>
               </tr>
             </thead>
@@ -343,11 +366,12 @@ function ListPanel() {
                 <tr key={r.email} className="border-t border-gray-50">
                   <td className="px-4 py-2 text-gray-700">{r.email}</td>
                   <td className="px-4 py-2 text-gray-500">{r.name ?? '-'}</td>
+                  <td className="px-4 py-2 text-gray-500">{r.company_name ?? '-'}</td>
                   <td className="px-4 py-2 text-gray-400">{new Date(r.created_at).toLocaleDateString('ja-JP')}</td>
                 </tr>
               ))}
               {recipients.length === 0 && (
-                <tr><td colSpan={3} className="px-4 py-6 text-center text-gray-400 text-sm">受信者がいません</td></tr>
+                <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400 text-sm">受信者がいません</td></tr>
               )}
             </tbody>
           </table>
@@ -364,8 +388,7 @@ function StatsPanel() {
 
   useEffect(() => {
     fetch('/api/email/stats', { headers: { 'x-admin-key': ADMIN_KEY } })
-      .then((r) => r.json())
-      .then((data) => { setCampaigns(data); setLoading(false); })
+      .then((r) => r.json()).then((d) => { setCampaigns(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -397,9 +420,7 @@ function StatsPanel() {
                 <td className="px-4 py-3 text-right text-gray-700">{c.bounced.toLocaleString()}</td>
                 <td className="px-4 py-3 text-right text-red-500">{c.bounce_rate}</td>
                 <td className="px-4 py-3 text-gray-400">{c.sent_at ? new Date(c.sent_at).toLocaleDateString('ja-JP') : '-'}</td>
-                <td className="px-4 py-3 text-center">
-                  <StatusBadge status={c.status} />
-                </td>
+                <td className="px-4 py-3 text-center"><StatusBadge status={c.status} /></td>
               </tr>
             ))}
             {campaigns.length === 0 && (
@@ -413,31 +434,17 @@ function StatsPanel() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    sent: 'bg-green-100 text-green-700',
-    sending: 'bg-yellow-100 text-yellow-700',
-    draft: 'bg-gray-100 text-gray-600',
-    failed: 'bg-red-100 text-red-700',
-  };
+  const map: Record<string, string> = { sent: 'bg-green-100 text-green-700', sending: 'bg-yellow-100 text-yellow-700', draft: 'bg-gray-100 text-gray-600', failed: 'bg-red-100 text-red-700' };
   const labels: Record<string, string> = { sent: '送信済', sending: '送信中', draft: '下書き', failed: '失敗' };
-  return (
-    <span className={`text-xs px-2 py-1 rounded-full font-medium ${map[status] ?? 'bg-gray-100 text-gray-600'}`}>
-      {labels[status] ?? status}
-    </span>
-  );
+  return <span className={`text-xs px-2 py-1 rounded-full font-medium ${map[status] ?? 'bg-gray-100 text-gray-600'}`}>{labels[status] ?? status}</span>;
 }
 
 function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-      />
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
     </div>
   );
 }
