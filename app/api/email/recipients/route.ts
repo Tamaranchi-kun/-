@@ -11,29 +11,60 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const listId = searchParams.get('list_id');
   const supabase = getSupabaseAdmin();
-  let query = supabase
+
+  if (listId) {
+    // リスト指定：ジャンクションテーブル経由で取得
+    const { data: members } = await supabase
+      .from('email_list_members')
+      .select('email')
+      .eq('list_id', listId);
+    const emails = (members ?? []).map((m) => m.email);
+    if (emails.length === 0) return NextResponse.json([]);
+    const { data } = await supabase
+      .from('email_lists')
+      .select('email, name, company_name, created_at')
+      .in('email', emails)
+      .is('unsubscribed_at', null)
+      .order('created_at', { ascending: false });
+    return NextResponse.json(data ?? []);
+  }
+
+  // 全件取得
+  const { data, error } = await supabase
     .from('email_lists')
-    .select('email, name, created_at')
+    .select('email, name, company_name, created_at')
     .is('unsubscribed_at', null)
     .order('created_at', { ascending: false });
-  if (listId) query = query.eq('list_id', listId);
-  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 
-// 受信者を追加（list_id付き）
+// 受信者を追加（company_name・list_id対応）
 export async function POST(req: Request) {
   if (!authCheck(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const { recipients } = await req.json();
+  const { recipients, list_id } = await req.json();
   if (!Array.isArray(recipients) || recipients.length === 0) {
     return NextResponse.json({ error: 'recipients must be a non-empty array' }, { status: 400 });
   }
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+
+  // コンタクトをupsert（既存なら name/company_name を更新）
+  const contacts = recipients.map(({ email, name, company_name }: { email: string; name?: string; company_name?: string }) => ({
+    email,
+    name: name || null,
+    company_name: company_name || null,
+  }));
+
+  const { error } = await supabase
     .from('email_lists')
-    .upsert(recipients, { onConflict: 'email', ignoreDuplicates: true })
-    .select();
+    .upsert(contacts, { onConflict: 'email' });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ inserted: data?.length ?? 0 });
+
+  // リスト指定があればジャンクションテーブルにも追加（upsertの戻り値に依存せず元のリストを使う）
+  if (list_id) {
+    const members = contacts.map((c) => ({ list_id, email: c.email }));
+    await supabase.from('email_list_members').upsert(members, { onConflict: 'list_id,email', ignoreDuplicates: true });
+  }
+
+  return NextResponse.json({ inserted: contacts.length });
 }
