@@ -18,12 +18,29 @@ type CampaignStats = Campaign & {
   bounce_rate: string;
 };
 
+type ListGroup = {
+  id: string;
+  name: string;
+  created_at: string;
+  member_count: number;
+};
+
 type Tab = 'send' | 'list' | 'stats';
 
 const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY ?? '';
 
 export default function EmailAdminPage() {
   const [tab, setTab] = useState<Tab>('send');
+
+  // 送信フォームの状態をここで管理（タブ切り替えで消えないようにする）
+  const [form, setForm] = useState({
+    subject: '',
+    from_name: '',
+    from_email: '',
+    body_html: '',
+    body_text: '',
+    list_id: '',
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -44,25 +61,43 @@ export default function EmailAdminPage() {
             </button>
           ))}
         </div>
-        {tab === 'send' && <SendPanel />}
-        {tab === 'list' && <ListPanel />}
-        {tab === 'stats' && <StatsPanel />}
+
+        {/* タブを全部レンダリングしてCSSで表示切り替え（状態保持のため） */}
+        <div className={tab === 'send' ? '' : 'hidden'}>
+          <SendPanel form={form} setForm={setForm} />
+        </div>
+        <div className={tab === 'list' ? '' : 'hidden'}>
+          <ListPanel />
+        </div>
+        <div className={tab === 'stats' ? '' : 'hidden'}>
+          <StatsPanel />
+        </div>
       </div>
     </div>
   );
 }
 
 // ── 送信パネル ──────────────────────────────────────────────
-function SendPanel() {
-  const [form, setForm] = useState({
-    subject: '',
-    from_name: '',
-    from_email: '',
-    body_html: '',
-    body_text: '',
-  });
+type FormState = {
+  subject: string;
+  from_name: string;
+  from_email: string;
+  body_html: string;
+  body_text: string;
+  list_id: string;
+};
+
+function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [lists, setLists] = useState<ListGroup[]>([]);
+
+  useEffect(() => {
+    fetch('/api/email/lists', { headers: { 'x-admin-key': ADMIN_KEY } })
+      .then((r) => r.json())
+      .then((data) => setLists(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   async function handleSend() {
     setSending(true);
@@ -70,18 +105,15 @@ function SendPanel() {
     try {
       const res = await fetch('/api/email/send', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-key': ADMIN_KEY,
-        },
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
         body: JSON.stringify(form),
       });
       const json = await res.json();
       if (res.ok) {
         setResult({ ok: true, message: `送信完了: ${json.total_sent}件` });
-        setForm({ subject: '', from_name: '', from_email: '', body_html: '', body_text: '' });
+        setForm({ ...form, subject: '', body_html: '', body_text: '' });
       } else {
-        setResult({ ok: false, message: json.error ?? '送信失敗' });
+        setResult({ ok: false, message: json.error_detail ?? json.error ?? '送信失敗' });
       }
     } catch {
       setResult({ ok: false, message: '通信エラー' });
@@ -90,13 +122,31 @@ function SendPanel() {
     }
   }
 
+  const selectedList = lists.find((l) => l.id === form.list_id);
+
   return (
     <div className="bg-white rounded-lg shadow p-6 space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="送信者名" value={form.from_name} onChange={(v) => setForm({ ...form, from_name: v })} placeholder="Your Company" />
-        <Field label="送信元メールアドレス" value={form.from_email} onChange={(v) => setForm({ ...form, from_email: v })} placeholder="noreply@yourdomain.com" />
+        <Field label="送信者名" value={form.from_name} onChange={(v) => setForm({ ...form, from_name: v })} placeholder="クロボ" />
+        <Field label="送信元メールアドレス" value={form.from_email} onChange={(v) => setForm({ ...form, from_email: v })} placeholder="noreply@crobo.co.jp" />
       </div>
       <Field label="件名" value={form.subject} onChange={(v) => setForm({ ...form, subject: v })} placeholder="重要なお知らせ" />
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">送信先リスト</label>
+        <select
+          value={form.list_id}
+          onChange={(e) => setForm({ ...form, list_id: e.target.value })}
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+        >
+          <option value="">すべての受信者</option>
+          {lists.map((l) => (
+            <option key={l.id} value={l.id}>{l.name}（{l.member_count}件）</option>
+          ))}
+        </select>
+        {form.list_id && selectedList && (
+          <p className="text-xs text-gray-400 mt-1">対象: {selectedList.member_count}件</p>
+        )}
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">本文 (HTML)</label>
         <textarea
@@ -135,24 +185,59 @@ function SendPanel() {
 
 // ── 受信者リストパネル ────────────────────────────────────
 function ListPanel() {
+  const [lists, setLists] = useState<ListGroup[]>([]);
+  const [selectedListId, setSelectedListId] = useState<string>('');
+  const [newListName, setNewListName] = useState('');
   const [emails, setEmails] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [recipients, setRecipients] = useState<{ email: string; name: string | null; created_at: string }[]>([]);
 
-  const fetchRecipients = useCallback(async () => {
-    const res = await fetch('/api/email/recipients', { headers: { 'x-admin-key': ADMIN_KEY } });
+  const fetchLists = useCallback(async () => {
+    const res = await fetch('/api/email/lists', { headers: { 'x-admin-key': ADMIN_KEY } });
+    if (res.ok) {
+      const data = await res.json();
+      setLists(Array.isArray(data) ? data : []);
+    }
+  }, []);
+
+  const fetchRecipients = useCallback(async (listId: string) => {
+    const url = listId ? `/api/email/recipients?list_id=${listId}` : '/api/email/recipients';
+    const res = await fetch(url, { headers: { 'x-admin-key': ADMIN_KEY } });
     if (res.ok) setRecipients(await res.json());
   }, []);
 
-  useEffect(() => { fetchRecipients(); }, [fetchRecipients]);
+  useEffect(() => { fetchLists(); }, [fetchLists]);
+  useEffect(() => { fetchRecipients(selectedListId); }, [selectedListId, fetchRecipients]);
+
+  async function handleCreateList() {
+    if (!newListName.trim()) return;
+    const res = await fetch('/api/email/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      body: JSON.stringify({ name: newListName.trim() }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setNewListName('');
+      await fetchLists();
+      setSelectedListId(data.id);
+    }
+  }
+
+  async function handleDeleteList(id: string) {
+    if (!confirm('このリストを削除しますか？（受信者データは残ります）')) return;
+    await fetch(`/api/email/lists/${id}`, { method: 'DELETE', headers: { 'x-admin-key': ADMIN_KEY } });
+    setSelectedListId('');
+    fetchLists();
+  }
 
   async function handleImport() {
     setLoading(true);
     const lines = emails.split('\n').map((l) => l.trim()).filter(Boolean);
     const list = lines.map((line) => {
       const [email, name] = line.split(',').map((s) => s.trim());
-      return { email, name: name || null };
+      return { email, name: name || null, list_id: selectedListId || null };
     });
     const res = await fetch('/api/email/recipients', {
       method: 'POST',
@@ -162,15 +247,65 @@ function ListPanel() {
     const json = await res.json();
     setMessage(res.ok ? `${json.inserted}件追加しました` : json.error ?? 'エラー');
     setEmails('');
-    fetchRecipients();
+    fetchRecipients(selectedListId);
+    fetchLists();
     setLoading(false);
   }
 
   return (
     <div className="space-y-6">
+      {/* リスト管理 */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">メールアドレスを追加</h2>
-        <p className="text-xs text-gray-500 mb-2">1行1件。「メール, 名前」の形式でも可。</p>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">リスト管理</h2>
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            value={newListName}
+            onChange={(e) => setNewListName(e.target.value)}
+            placeholder="新しいリスト名（例：営業先リスト）"
+            className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
+          />
+          <button
+            onClick={handleCreateList}
+            disabled={!newListName.trim()}
+            className="bg-blue-600 text-white rounded px-4 py-2 text-sm font-medium disabled:opacity-50 hover:bg-blue-700"
+          >
+            作成
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedListId('')}
+            className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+              selectedListId === '' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+            }`}
+          >
+            すべて
+          </button>
+          {lists.map((l) => (
+            <div key={l.id} className="flex items-center gap-1">
+              <button
+                onClick={() => setSelectedListId(l.id)}
+                className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                  selectedListId === l.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                }`}
+              >
+                {l.name}（{l.member_count}）
+              </button>
+              <button onClick={() => handleDeleteList(l.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* メールアドレス追加 */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-1">メールアドレスを追加</h2>
+        <p className="text-xs text-gray-500 mb-2">
+          1行1件。「メール, 名前」の形式でも可。
+          {selectedListId ? ` → 「${lists.find(l => l.id === selectedListId)?.name}」に追加` : ' → すべての受信者として追加'}
+        </p>
         <textarea
           value={emails}
           onChange={(e) => setEmails(e.target.value)}
@@ -187,6 +322,8 @@ function ListPanel() {
           {loading ? '追加中...' : 'インポート'}
         </button>
       </div>
+
+      {/* 受信者一覧 */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-3 border-b border-gray-100 flex justify-between items-center">
           <span className="text-sm font-semibold text-gray-700">受信者一覧</span>

@@ -5,20 +5,24 @@ function authCheck(req: Request) {
   return req.headers.get('x-admin-key') === process.env.ADMIN_API_KEY;
 }
 
-// 受信者一覧取得
+// 受信者一覧取得（list_idでフィルタ可能）
 export async function GET(req: Request) {
   if (!authCheck(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { searchParams } = new URL(req.url);
+  const listId = searchParams.get('list_id');
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from('email_lists')
     .select('email, name, created_at')
     .is('unsubscribed_at', null)
     .order('created_at', { ascending: false });
+  if (listId) query = query.eq('list_id', listId);
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 
-// 受信者を追加（一括インポート）
+// 受信者を追加（list_id付き）
 export async function POST(req: Request) {
   if (!authCheck(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { recipients } = await req.json();

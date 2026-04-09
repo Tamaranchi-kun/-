@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { subject, body_html, body_text, from_name, from_email } = await req.json();
+  const { subject, body_html, body_text, from_name, from_email, list_id } = await req.json();
   if (!subject || !body_html || !from_name || !from_email) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
@@ -30,11 +30,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 });
   }
 
-  // 配信停止していない受信者を全取得
-  const { data: recipients, error: listError } = await supabase
+  // 配信停止していない受信者を取得（list_idでフィルタ可能）
+  let recipientsQuery = supabase
     .from('email_lists')
     .select('email, name')
     .is('unsubscribed_at', null);
+  if (list_id) recipientsQuery = recipientsQuery.eq('list_id', list_id);
+  const { data: recipients, error: listError } = await recipientsQuery;
 
   if (listError || !recipients) {
     await supabase.from('email_campaigns').update({ status: 'failed' }).eq('id', campaign.id);
