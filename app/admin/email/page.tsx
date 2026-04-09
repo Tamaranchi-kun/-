@@ -188,20 +188,19 @@ function ListPanel() {
     const parseCols = (line: string) => line.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
 
     // ヘッダー行を検出して列インデックスを特定
-    let emailIdx = 0, nameIdx = -1, companyIdx = -1;
+    let emailIdxList: number[] = [], nameIdx = -1, companyIdx = -1;
     let dataStart = 0;
 
-    // 最初の10行以内でヘッダー行を探す（メールアドレスを含む列があるか）
     const isEmailCol = (s: string) => /email|メールアドレス|mail/i.test(s);
     const isNameCol = (s: string) => /^(name|名前|氏名|担当者名)$/i.test(s);
     const isCompanyCol = (s: string) => /^(company|会社名|company_name)$/i.test(s);
 
     for (let li = 0; li < Math.min(5, lines.length); li++) {
       const cols = parseCols(lines[li]);
-      const ei = cols.findIndex((c) => isEmailCol(c));
-      if (ei !== -1) {
+      const emailCols = cols.reduce<number[]>((acc, c, i) => { if (isEmailCol(c)) acc.push(i); return acc; }, []);
+      if (emailCols.length > 0) {
         dataStart = li + 1;
-        emailIdx = ei;
+        emailIdxList = emailCols;
         const ni = cols.findIndex((c) => isNameCol(c));
         const ci = cols.findIndex((c) => isCompanyCol(c));
         if (ni !== -1) nameIdx = ni;
@@ -209,15 +208,17 @@ function ListPanel() {
         break;
       }
     }
+    if (emailIdxList.length === 0) emailIdxList = [0];
 
     const dataLines = lines.slice(dataStart);
-    const recipients = dataLines.map((line) => {
+    // メール列が複数ある場合は1行から複数の受信者を生成
+    const recipients = dataLines.flatMap((line) => {
       const cols = parseCols(line);
-      return {
-        email: cols[emailIdx] ?? '',
+      return emailIdxList.map((ei) => ({
+        email: cols[ei] ?? '',
         name: nameIdx >= 0 ? (cols[nameIdx] || null) : null,
         company_name: companyIdx >= 0 ? (cols[companyIdx] || null) : null,
-      };
+      }));
     }).filter((r) => r.email && r.email.includes('@'));
     if (recipients.length === 0) { setMessage('有効なメールアドレスが見つかりません'); return; }
 
