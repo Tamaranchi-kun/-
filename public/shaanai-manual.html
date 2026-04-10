@@ -370,6 +370,24 @@
     <div class="step">
       <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
       <div class="step-content">
+        <h3>お客様のGmailアドレスをテストユーザーに追加する</h3>
+        <p>認証リンクを送る前に、お客様のGmailアドレスをGoogle Cloud Consoleに登録します。<br>
+        <strong>これをしないとお客様がブロック画面（「アクセスをブロック」エラー）になります。</strong></p>
+        <div class="warning-box">⚠️ 認証リンクを送る前に必ずこの手順を完了してください。</div>
+        <ol style="margin-top:12px; padding-left:20px; line-height:2;">
+          <li>お客様にチャンネルを所有しているGmailアドレスを確認する</li>
+          <li><a href="https://console.cloud.google.com/apis/credentials/consent?project=youtubetranslationpjt" target="_blank">Google Cloud Console（OAuth同意画面）</a> を開く</li>
+          <li>「テストユーザー」セクションの <strong>「+ ADD USERS」</strong> をクリック</li>
+          <li>お客様のGmailアドレスを入力して保存</li>
+        </ol>
+        <div class="success-box">✅ 追加後、次のSTEPへ進んでください</div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-content">
         <h3>認証リンクを生成する</h3>
         <p>以下のURLをブラウザで開きます。</p>
         <p><a href="https://translationpjt.web.app/oauth.html" target="_blank">https://translationpjt.web.app/oauth.html</a></p>
@@ -380,9 +398,9 @@
       </div>
     </div>
 
-    <!-- STEP 3 -->
+    <!-- STEP 4 -->
     <div class="step">
-      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
       <div class="step-content">
         <h3>お客様に認証リンクを送る</h3>
         <p>以下のメールテンプレートをコピーして送付してください。</p>
@@ -412,9 +430,9 @@
       </div>
     </div>
 
-    <!-- STEP 4 -->
+    <!-- STEP 5 -->
     <div class="step">
-      <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+      <div class="step-left"><div class="step-num">5</div><div class="step-line"></div></div>
       <div class="step-content">
         <h3>認証完了を確認する</h3>
         <p>お客様から完了連絡が来たら <a href="https://console.firebase.google.com/project/youtubetranslationpjt/firestore" target="_blank">Firebase Console（Firestore）</a> で確認します。</p>
@@ -423,9 +441,9 @@
       </div>
     </div>
 
-    <!-- STEP 5 -->
+    <!-- STEP 6 -->
     <div class="step">
-      <div class="step-left"><div class="step-num">5</div><div class="step-line"></div></div>
+      <div class="step-left"><div class="step-num">6</div><div class="step-line"></div></div>
       <div class="step-content">
         <h3>アップロードを実行する</h3>
         <p><a href="https://translationpjt.web.app/caption" target="_blank">アプリ</a> を開き、お客様IDを入力してアップロードします。</p>
