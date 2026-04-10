@@ -180,6 +180,17 @@ function ListPanel() {
     fetchLists();
   }
 
+  async function deleteRecipient(email: string) {
+    if (!confirm(`「${email}」を${selectedListId ? 'このリストから' : '完全に'}削除しますか？`)) return;
+    await fetch('/api/email/recipients', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      body: JSON.stringify({ email, list_id: selectedListId || null }),
+    });
+    fetchRecipients(selectedListId);
+    fetchLists();
+  }
+
   // RFC4180準拠のCSVパーサー（ダブルクォート・改行含むフィールド対応）
   function parseCsv(text: string): string[][] {
     const rows: string[][] = [];
@@ -387,19 +398,26 @@ function ListPanel() {
                 <th className="text-left px-4 py-2 text-xs text-gray-500">名前</th>
                 <th className="text-left px-4 py-2 text-xs text-gray-500">会社名</th>
                 <th className="text-left px-4 py-2 text-xs text-gray-500">登録日</th>
+                <th className="px-4 py-2"></th>
               </tr>
             </thead>
             <tbody>
               {recipients.map((r) => (
-                <tr key={r.email} className="border-t border-gray-50">
+                <tr key={r.email} className="border-t border-gray-50 hover:bg-gray-50">
                   <td className="px-4 py-2 text-gray-700">{r.email}</td>
                   <td className="px-4 py-2 text-gray-500">{r.name ?? '-'}</td>
                   <td className="px-4 py-2 text-gray-500">{r.company_name ?? '-'}</td>
                   <td className="px-4 py-2 text-gray-400">{new Date(r.created_at).toLocaleDateString('ja-JP')}</td>
+                  <td className="px-4 py-2 text-right">
+                    <button
+                      onClick={() => deleteRecipient(r.email)}
+                      className="text-gray-300 hover:text-red-500 text-xs px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                    >削除</button>
+                  </td>
                 </tr>
               ))}
               {recipients.length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400 text-sm">受信者がいません</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-400 text-sm">受信者がいません</td></tr>
               )}
             </tbody>
           </table>
