@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>メール配信システム 操作マニュアル</title>
+<style>
+  body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 24px; color: #333; line-height: 1.8; }
+  h1 { font-size: 24px; border-bottom: 3px solid #2563eb; padding-bottom: 12px; color: #1e40af; }
+  h2 { font-size: 18px; background: #eff6ff; border-left: 4px solid #2563eb; padding: 8px 16px; margin-top: 40px; color: #1e40af; }
+  h3 { font-size: 15px; color: #374151; margin-top: 24px; }
+  .step { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 20px; margin: 12px 0; }
+  .step-num { display: inline-block; background: #2563eb; color: white; border-radius: 50%; width: 24px; height: 24px; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; margin-right: 8px; }
+  .note { background: #fef9c3; border: 1px solid #fde047; border-radius: 6px; padding: 12px 16px; margin: 12px 0; font-size: 14px; }
+  .tip { background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 12px 16px; margin: 12px 0; font-size: 14px; }
+  .warn { background: #fff1f2; border: 1px solid #fca5a5; border-radius: 6px; padding: 12px 16px; margin: 12px 0; font-size: 14px; }
+  code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; }
+  pre { background: #1e293b; color: #e2e8f0; padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th { background: #eff6ff; padding: 10px 12px; text-align: left; border: 1px solid #dbeafe; }
+  td { padding: 10px 12px; border: 1px solid #e5e7eb; }
+  .url { color: #2563eb; font-weight: bold; }
+  @media print { body { padding: 20px; } }
+</style>
+</head>
+<body>
+
+<h1>📧 メール配信システム 操作マニュアル</h1>
+<p style="color:#6b7280; font-size:14px;">作成日：2026年4月 ／ クロボ株式会社</p>
+
+<h2>1. システム概要</h2>
+<p>このシステムは、営業先へのメール一括送信・開封率計測を行うための社内ツールです。<br>
+迷惑メール対策済み（SPF/DKIM設定）のため、アララメッセージより高い到達率で送信できます。</p>
+
+<table>
+  <tr><th>アクセスURL</th><td><span class="url">https://kakuzuke-check.vercel.app/admin/email</span></td></tr>
+  <tr><th>利用可能な機能</th><td>受信者リスト管理 ／ 一括送信 ／ 開封率・バウンス率の確認</td></tr>
+</table>
+
+<h2>2. 受信者リストの管理</h2>
+
+<h3>2-1. リストを作成する</h3>
+<div class="step"><span class="step-num">1</span>「受信者リスト」タブをクリック</div>
+<div class="step"><span class="step-num">2</span>「新しいリスト名」に名前を入力（例：農業リスト、製造業リスト）</div>
+<div class="step"><span class="step-num">3</span>「作成」ボタンをクリック</div>
+
+<h3>2-2. CSVから受信者を一括取り込む</h3>
+<div class="step"><span class="step-num">1</span>取り込みたいリスト名をクリックして選択（青くなる）</div>
+<div class="step"><span class="step-num">2</span>「CSVファイル」タブをクリック</div>
+<div class="step"><span class="step-num">3</span>「CSVファイルを選択」→ ファイルを選ぶ</div>
+<div class="step"><span class="step-num">4</span>「〇件追加しました」と表示されれば完了</div>
+
+<div class="tip">
+  ✅ <strong>対応しているCSV形式</strong><br>
+  「担当者メールアドレス」「本社採用メールアドレス」「メールアドレス」など、<br>
+  ヘッダー行にメールアドレスを含む列名があれば自動検出します。列の順番は問いません。<br>
+  メールアドレスが入っていない行は自動的にスキップされます。
+</div>
+
+<div class="note">
+  ⚠️ <strong>注意</strong>：リストを選択してからCSVをアップロードしてください。<br>
+  リスト未選択のままアップロードすると、リストへの紐付けがされません。
+</div>
+
+<h3>2-3. 受信者を個別に削除する</h3>
+<div class="step"><span class="step-num">1</span>削除したい受信者が所属するリストを選択</div>
+<div class="step"><span class="step-num">2</span>受信者一覧の右端にある「削除」ボタンをクリック</div>
+<div class="step"><span class="step-num">3</span>確認ダイアログで「OK」</div>
+
+<div class="tip">
+  ✅ リスト選択中に削除すると「そのリストから外すだけ」です。<br>
+  「すべて」選択中に削除すると「完全削除」になります。
+</div>
+
+<h2>3. メールを送信する</h2>
+
+<h3>3-1. 送信手順</h3>
+<div class="step"><span class="step-num">1</span>「送信」タブをクリック</div>
+<div class="step"><span class="step-num">2</span>以下の項目を入力する</div>
+
+<table>
+  <tr><th>送信者名</th><td>受信者に表示される名前（例：クロボ株式会社 北氏）</td></tr>
+  <tr><th>送信元メールアドレス</th><td><code>noreply@crobo.co.jp</code>（原則このまま）</td></tr>
+  <tr><th>件名</th><td>開封率に最も影響する。具体的な数字や相手のメリットを入れる</td></tr>
+  <tr><th>送信先リスト</th><td>送りたいリストを選択（「すべての受信者」も可）</td></tr>
+  <tr><th>本文（HTML）</th><td>後述のテンプレートを参照</td></tr>
+  <tr><th>本文（テキスト）</th><td>HTML版と同じ内容をプレーンテキストで記載</td></tr>
+</table>
+
+<div class="step"><span class="step-num">3</span>「一括送信」ボタンをクリック</div>
+<div class="step"><span class="step-num">4</span>「送信完了：〇件」と表示されれば完了</div>
+
+<h3>3-2. HTML版の書き方（テンプレート）</h3>
+<p>以下をコピーして、〔　〕部分を書き換えて使ってください。</p>
+
+<pre>&lt;p&gt;〔会社名〕 〔担当者名〕様&lt;/p&gt;
+
+&lt;p&gt;はじめまして。クロボ株式会社の〔名前〕と申します。&lt;br&gt;
+外国人スタッフ向け動画マニュアルSaaS「GENBA」をご紹介させてください。&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;【こんなお悩みはありませんか？】&lt;/strong&gt;&lt;br&gt;
+・外国人スタッフへの教育に時間がかかる&lt;br&gt;
+・言語の壁で業務マニュアルが伝わらない&lt;br&gt;
+・教育担当者の負担が大きい&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;【GENBAの特徴】&lt;/strong&gt;&lt;br&gt;
+・10言語対応・翻訳精度約95%&lt;br&gt;
+・月16本の動画マニュアル制作&lt;br&gt;
+・JA八代様で年間649万円の教育コスト削減を実現&lt;/p&gt;
+
+&lt;p&gt;詳細資料のご送付や、オンラインでのご説明も可能です。&lt;br&gt;
+ご興味があればお気軽にご返信ください。&lt;/p&gt;
+
+&lt;p&gt;━━━━━━━━━━━━━━━━━&lt;br&gt;
+クロボ株式会社　〔名前〕&lt;br&gt;
+Email：〔メールアドレス〕&lt;br&gt;
+━━━━━━━━━━━━━━━━━&lt;/p&gt;</pre>
+
+<h3>3-3. テキスト版の書き方</h3>
+<p>HTML版と同じ内容を、タグなしで書くだけでOKです。</p>
+
+<pre>〔会社名〕 〔担当者名〕様
+
+はじめまして。クロボ株式会社の〔名前〕と申します。
+外国人スタッフ向け動画マニュアルSaaS「GENBA」をご紹介させてください。
+
+【こんなお悩みはありませんか？】
+・外国人スタッフへの教育に時間がかかる
+・言語の壁で業務マニュアルが伝わらない
+・教育担当者の負担が大きい
+
+【GENBAの特徴】
+・10言語対応・翻訳精度約95%
+・月16本の動画マニュアル制作
+・JA八代様で年間649万円の教育コスト削減を実現
+
+詳細資料のご送付や、オンラインでのご説明も可能です。
+ご興味があればお気軽にご返信ください。
+
+━━━━━━━━━━━━━━━━━
+クロボ株式会社　〔名前〕
+Email：〔メールアドレス〕
+━━━━━━━━━━━━━━━━━</pre>
+
+<div class="tip">
+  ✅ <strong>開封率を上げる件名のコツ</strong><br>
+  ・数字を入れる：「649万円削減の実績あり」「10言語対応」<br>
+  ・相手のメリットを入れる：「外国人教育コストを削減する方法」<br>
+  ・短くする：20文字以内が理想<br>
+  ・「【】」で囲む：「【ご提案】〜」
+</div>
+
+<h2>4. 効果検証の確認方法</h2>
+
+<h3>4-1. 確認手順</h3>
+<div class="step"><span class="step-num">1</span>「効果検証」タブをクリック</div>
+<div class="step"><span class="step-num">2</span>上部のリストボタンで絞り込み可能（農業・製造業など）</div>
+<div class="step"><span class="step-num">3</span>各行の「内容」ボタンで送ったメールの本文を確認</div>
+
+<h3>4-2. 指標の見方</h3>
+<table>
+  <tr><th>指標</th><th>目安</th><th>意味</th></tr>
+  <tr><td>開封率</td><td>20〜30%が良好</td><td>メールを開いた割合</td></tr>
+  <tr><td>バウンス率</td><td>5%以下が正常</td><td>届かなかったメールの割合（アドレスが無効など）</td></tr>
+  <tr><td>送信数</td><td>—</td><td>実際に送信された件数</td></tr>
+</table>
+
+<div class="warn">
+  ⚠️ <strong>開封率が低い場合のチェックポイント</strong><br>
+  ① 件名を変えてみる（数字・メリットを入れる）<br>
+  ② 送信時間を変えてみる（火〜木の午前10時前後が一般的に高い）<br>
+  ③ バウンス率が高い場合はリストの質を見直す
+</div>
+
+<h2>5. よくある質問</h2>
+
+<table>
+  <tr>
+    <th>Q. メールが届かないと言われた</th>
+    <td>効果検証でバウンスになっていないか確認。なっていれば相手のアドレスが無効。</td>
+  </tr>
+  <tr>
+    <th>Q. 同じ人に2回送ってしまった</th>
+    <td>送信前にリストの中身を確認する。同じメールアドレスは重複登録されない仕様。</td>
+  </tr>
+  <tr>
+    <th>Q. CSVを取り込んだが件数が少ない</th>
+    <td>CSVのメールアドレス列が空の行はスキップされる。元データを確認する。</td>
+  </tr>
+  <tr>
+    <th>Q. 送信ボタンが押せない</th>
+    <td>送信者名・送信元アドレス・件名・本文（HTML）がすべて入力されているか確認。</td>
+  </tr>
+</table>
+
+<p style="margin-top:60px; text-align:center; color:#9ca3af; font-size:13px;">
+  クロボ株式会社 ／ 社内用ドキュメント
+</p>
+
+</body>
+</html>
