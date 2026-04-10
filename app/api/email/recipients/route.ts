@@ -68,3 +68,22 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ inserted: contacts.length });
 }
+
+// 受信者を削除（list_id指定時はリストから外すのみ、なければ完全削除）
+export async function DELETE(req: Request) {
+  if (!authCheck(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { email, list_id } = await req.json();
+  if (!email) return NextResponse.json({ error: 'email is required' }, { status: 400 });
+  const supabase = getSupabaseAdmin();
+
+  if (list_id) {
+    // リストから外すだけ（他のリストや受信者データには影響なし）
+    await supabase.from('email_list_members').delete().eq('list_id', list_id).eq('email', email);
+  } else {
+    // 完全削除
+    await supabase.from('email_list_members').delete().eq('email', email);
+    await supabase.from('email_lists').delete().eq('email', email);
+  }
+
+  return NextResponse.json({ ok: true });
+}
