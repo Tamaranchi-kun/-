@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   // キャンペーンレコードを作成
   const { data: campaign, error: campaignError } = await supabase
     .from('email_campaigns')
-    .insert({ subject, body_html, body_text, from_name, from_email, status: 'sending' })
+    .insert({ subject, body_html, body_text, from_name, from_email, status: 'sending', list_id: list_id || null })
     .select()
     .single();
 
@@ -31,11 +31,19 @@ export async function POST(req: Request) {
   }
 
   // 配信停止していない受信者を取得（list_idでフィルタ可能）
+  let recipientEmails: string[] | null = null;
+  if (list_id) {
+    const { data: members } = await supabase
+      .from('email_list_members')
+      .select('email')
+      .eq('list_id', list_id);
+    recipientEmails = (members ?? []).map((m: { email: string }) => m.email);
+  }
   let recipientsQuery = supabase
     .from('email_lists')
     .select('email, name')
     .is('unsubscribed_at', null);
-  if (list_id) recipientsQuery = recipientsQuery.eq('list_id', list_id);
+  if (recipientEmails) recipientsQuery = recipientsQuery.in('email', recipientEmails);
   const { data: recipients, error: listError } = await recipientsQuery;
 
   if (listError || !recipients) {

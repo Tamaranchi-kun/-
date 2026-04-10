@@ -5,10 +5,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 type CampaignStats = {
   id: string;
   subject: string;
+  body_html: string;
+  body_text: string | null;
   status: string;
   total_sent: number;
   created_at: string;
   sent_at: string | null;
+  list_id: string | null;
+  list_name: string;
   opened: number;
   bounced: number;
   open_rate: string;
@@ -430,51 +434,108 @@ function ListPanel() {
 // ── 効果検証パネル ────────────────────────────────────────
 function StatsPanel() {
   const [campaigns, setCampaigns] = useState<CampaignStats[]>([]);
+  const [lists, setLists] = useState<ListGroup[]>([]);
+  const [filterListId, setFilterListId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [preview, setPreview] = useState<CampaignStats | null>(null);
 
   useEffect(() => {
-    fetch('/api/email/stats', { headers: { 'x-admin-key': ADMIN_KEY } })
-      .then((r) => r.json()).then((d) => { setCampaigns(d); setLoading(false); })
-      .catch(() => setLoading(false));
+    fetch('/api/email/lists', { headers: { 'x-admin-key': ADMIN_KEY } })
+      .then((r) => r.json()).then((d) => setLists(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
-  if (loading) return <div className="text-center py-12 text-gray-400">読み込み中...</div>;
+  useEffect(() => {
+    setLoading(true);
+    const url = filterListId ? `/api/email/stats?list_id=${filterListId}` : '/api/email/stats';
+    fetch(url, { headers: { 'x-admin-key': ADMIN_KEY } })
+      .then((r) => r.json()).then((d) => { setCampaigns(Array.isArray(d) ? d : []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [filterListId]);
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left px-4 py-3 text-xs text-gray-500">件名</th>
-              <th className="text-right px-4 py-3 text-xs text-gray-500">送信数</th>
-              <th className="text-right px-4 py-3 text-xs text-gray-500">開封数</th>
-              <th className="text-right px-4 py-3 text-xs text-gray-500">開封率</th>
-              <th className="text-right px-4 py-3 text-xs text-gray-500">バウンス</th>
-              <th className="text-right px-4 py-3 text-xs text-gray-500">バウンス率</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500">送信日</th>
-              <th className="text-center px-4 py-3 text-xs text-gray-500">状態</th>
-            </tr>
-          </thead>
-          <tbody>
-            {campaigns.map((c) => (
-              <tr key={c.id} className="border-t border-gray-100 hover:bg-gray-50">
-                <td className="px-4 py-3 text-gray-800 max-w-xs truncate">{c.subject}</td>
-                <td className="px-4 py-3 text-right text-gray-700">{c.total_sent.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right text-gray-700">{c.opened.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right font-semibold text-blue-600">{c.open_rate}</td>
-                <td className="px-4 py-3 text-right text-gray-700">{c.bounced.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right text-red-500">{c.bounce_rate}</td>
-                <td className="px-4 py-3 text-gray-400">{c.sent_at ? new Date(c.sent_at).toLocaleDateString('ja-JP') : '-'}</td>
-                <td className="px-4 py-3 text-center"><StatusBadge status={c.status} /></td>
-              </tr>
-            ))}
-            {campaigns.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400">キャンペーンがありません</td></tr>
-            )}
-          </tbody>
-        </table>
+    <div className="space-y-4">
+      {/* リスト絞り込み */}
+      <div className="bg-white rounded-lg shadow p-4 flex items-center gap-3">
+        <span className="text-sm text-gray-600 font-medium">リストで絞り込み：</span>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setFilterListId('')}
+            className={`px-3 py-1 rounded-full text-sm border ${filterListId === '' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
+            すべて
+          </button>
+          {lists.map((l) => (
+            <button key={l.id} onClick={() => setFilterListId(l.id)}
+              className={`px-3 py-1 rounded-full text-sm border ${filterListId === l.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
+              {l.name}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* キャンペーン一覧 */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {loading ? <div className="text-center py-12 text-gray-400">読み込み中...</div> : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs text-gray-500">件名</th>
+                  <th className="text-left px-4 py-3 text-xs text-gray-500">送信先リスト</th>
+                  <th className="text-right px-4 py-3 text-xs text-gray-500">送信数</th>
+                  <th className="text-right px-4 py-3 text-xs text-gray-500">開封率</th>
+                  <th className="text-right px-4 py-3 text-xs text-gray-500">バウンス率</th>
+                  <th className="text-left px-4 py-3 text-xs text-gray-500">送信日</th>
+                  <th className="text-center px-4 py-3 text-xs text-gray-500">状態</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {campaigns.map((c) => (
+                  <tr key={c.id} className="border-t border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-800 max-w-xs truncate">{c.subject}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{c.list_name}</td>
+                    <td className="px-4 py-3 text-right text-gray-700">{c.total_sent.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-blue-600">{c.open_rate}</td>
+                    <td className="px-4 py-3 text-right text-red-500">{c.bounce_rate}</td>
+                    <td className="px-4 py-3 text-gray-400">{c.sent_at ? new Date(c.sent_at).toLocaleDateString('ja-JP') : '-'}</td>
+                    <td className="px-4 py-3 text-center"><StatusBadge status={c.status} /></td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => setPreview(c)}
+                        className="text-xs text-blue-500 hover:text-blue-700 underline">内容</button>
+                    </td>
+                  </tr>
+                ))}
+                {campaigns.length === 0 && (
+                  <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400">キャンペーンがありません</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* メール内容プレビューモーダル */}
+      {preview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <div>
+                <p className="font-semibold text-gray-800">{preview.subject}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{preview.list_name} ・ {preview.sent_at ? new Date(preview.sent_at).toLocaleDateString('ja-JP') : '-'}</p>
+              </div>
+              <button onClick={() => setPreview(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-6">
+              <iframe srcDoc={preview.body_html} className="w-full border rounded" style={{ height: '400px' }} title="メールプレビュー" />
+              {preview.body_text && (
+                <div className="mt-4">
+                  <p className="text-xs text-gray-500 mb-1 font-medium">テキスト版</p>
+                  <pre className="text-xs text-gray-600 bg-gray-50 rounded p-3 whitespace-pre-wrap">{preview.body_text}</pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
