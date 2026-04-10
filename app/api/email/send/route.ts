@@ -10,14 +10,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { subject, body_html, body_text, from_name, from_email, list_id } = await req.json();
+  const { subject, body_html, body_text, from_name, from_email, list_id, scheduled_at } = await req.json();
   if (!subject || !body_html || !from_name || !from_email) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
   const supabase = getSupabaseAdmin();
-  const resend = new Resend(process.env.RESEND_API_KEY);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? '';
+
+  // 予約送信の場合はDBに保存してすぐ返す
+  if (scheduled_at && new Date(scheduled_at) > new Date()) {
+    const { error } = await supabase.from('email_campaigns').insert({
+      subject, body_html, body_text, from_name, from_email,
+      status: 'scheduled', list_id: list_id || null, scheduled_at,
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ scheduled: true, scheduled_at });
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   // キャンペーンレコードを作成
   const { data: campaign, error: campaignError } = await supabase
