@@ -55,6 +55,7 @@
     <li><a href="#send">メールを送信する</a>
       <ul>
         <li><a href="#send-flow">送信手順</a></li>
+        <li><a href="#send-schedule">配信予約（日時指定）</a></li>
         <li><a href="#send-html">HTML版の書き方・テンプレート</a></li>
         <li><a href="#send-text">テキスト版の書き方</a></li>
         <li><a href="#send-subject">件名で開封率を上げるコツ</a></li>
@@ -191,6 +192,7 @@ suzuki@company.jp</pre>
   <tr><td>送信先リスト</td><td>送りたいリストを選択。未選択の場合は全受信者に送信</td></tr>
   <tr><td>本文（HTML）</td><td><strong>必須</strong>。後述のテンプレートを使用</td></tr>
   <tr><td>本文（テキスト）</td><td>推奨。HTML版と同じ内容をタグなしで記載。迷惑メール対策になる</td></tr>
+  <tr><td>送信日時を指定</td><td>省略可。未来の日時を選ぶと予約送信になる（→ 4-2参照）</td></tr>
 </table>
 
 <div class="warn">
@@ -200,7 +202,38 @@ suzuki@company.jp</pre>
   ③ 送信したら取り消しできません
 </div>
 
-<h3 id="send-html">4-2. HTML版の書き方・テンプレート</h3>
+<h3 id="send-schedule">4-2. 配信予約（日時指定）</h3>
+
+<p>送信フォームの下部にある「<strong>送信日時を指定</strong>」欄で、メールを送る日時をあらかじめ予約できます。</p>
+
+<h4>▼ 予約の手順</h4>
+<div class="step"><span class="step-num">1</span>「送信」タブで件名・本文など通常通り入力する</div>
+<div class="step"><span class="step-num">2</span>「送信日時を指定」の入力欄をクリック → カレンダーが開く</div>
+<div class="step"><span class="step-num">3</span>カレンダーで<strong>日付</strong>を選択し、時刻（時・分）を入力する</div>
+<div class="step"><span class="step-num">4</span>未来の日時を選ぶとボタンが<strong style="color:#ea580c;">「配信を予約する」（オレンジ色）</strong>に変わる</div>
+<div class="step"><span class="step-num">5</span>「配信を予約する」ボタンをクリック → 「配信を予約しました」と表示されれば完了</div>
+
+<div class="tip">
+  ✅ <strong>予約完了後の動作</strong><br>
+  指定した日時になると自動でメール送信が始まります。送信後は「効果検証」タブに結果が表示されます。<br>
+  送信までの間は操作不要です。システムが毎分自動チェックしています。
+</div>
+
+<div class="note">
+  ⚠️ <strong>カレンダーの使い方</strong><br>
+  ・クリックすると日付・時刻を選択できるピッカーが表示されます<br>
+  ・時刻は24時間形式（例：14:30 = 午後2時30分）<br>
+  ・日時を空欄のままにすると通常の即時送信になります<br>
+  ・現在時刻より過去の日時を選んだ場合は即時送信扱いになります
+</div>
+
+<div class="warn">
+  ⚠️ <strong>予約後の注意</strong><br>
+  現時点では予約のキャンセル機能はありません。<br>
+  誤った日時で予約した場合は、北氏に連絡してデータベースから削除してもらってください。
+</div>
+
+<h3 id="send-html">4-4. HTML版の書き方・テンプレート</h3>
 
 <p>以下をコピーして〔　〕部分を書き換えてください。基本タグは4つだけです。</p>
 
@@ -236,7 +269,7 @@ suzuki@company.jp</pre>
 Email：〔メールアドレス〕&lt;br&gt;
 ━━━━━━━━━━━━━━━━━&lt;/p&gt;</pre>
 
-<h3 id="send-text">4-3. テキスト版の書き方</h3>
+<h3 id="send-text">4-5. テキスト版の書き方</h3>
 <p>HTML版と同じ内容を、タグ（&lt; &gt;）を取り除いてそのまま書くだけです。</p>
 
 <pre>〔会社名〕 〔担当者名〕様
@@ -269,7 +302,7 @@ Email：〔メールアドレス〕
   ③ テキストメーラーや古いシステムでも読める
 </div>
 
-<h3 id="send-subject">4-4. 件名で開封率を上げるコツ</h3>
+<h3 id="send-subject">4-6. 件名で開封率を上げるコツ</h3>
 
 <table>
   <tr><th>ポイント</th><th>悪い例</th><th>良い例</th></tr>
