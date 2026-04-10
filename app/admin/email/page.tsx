@@ -46,6 +46,7 @@ export default function EmailAdminPage() {
     body_html: '',
     body_text: '',
     list_id: '',
+    scheduled_at: '',
   });
 
   return (
@@ -74,7 +75,7 @@ export default function EmailAdminPage() {
 }
 
 // ── 送信パネル ──────────────────────────────────────────────
-type FormState = { subject: string; from_name: string; from_email: string; body_html: string; body_text: string; list_id: string };
+type FormState = { subject: string; from_name: string; from_email: string; body_html: string; body_text: string; list_id: string; scheduled_at: string };
 
 function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
   const [sending, setSending] = useState(false);
@@ -89,21 +90,28 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
   async function handleSend() {
     setSending(true); setResult(null);
     try {
+      const payload = { ...form, scheduled_at: form.scheduled_at || null };
       const res = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (res.ok) {
-        setResult({ ok: true, message: `送信完了: ${json.total_sent}件` });
-        setForm({ ...form, subject: '', body_html: '', body_text: '' });
+        if (json.scheduled) {
+          setResult({ ok: true, message: `予約完了：${new Date(form.scheduled_at).toLocaleString('ja-JP')} に送信されます` });
+        } else {
+          setResult({ ok: true, message: `送信完了: ${json.total_sent}件` });
+        }
+        setForm({ ...form, subject: '', body_html: '', body_text: '', scheduled_at: '' });
       } else {
         setResult({ ok: false, message: json.error_detail ?? json.error ?? '送信失敗' });
       }
     } catch { setResult({ ok: false, message: '通信エラー' }); }
     finally { setSending(false); }
   }
+
+  const isScheduled = !!form.scheduled_at && new Date(form.scheduled_at) > new Date();
 
   return (
     <div className="bg-white rounded-lg shadow p-6 space-y-4">
@@ -129,12 +137,24 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
         <textarea value={form.body_text} onChange={(e) => setForm({ ...form, body_text: e.target.value })} rows={4}
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="プレーンテキスト版（迷惑メール対策に有効）" />
       </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          送信日時
+          <span className="ml-2 text-xs text-gray-400 font-normal">（空白 = 即時送信）</span>
+        </label>
+        <input type="datetime-local" value={form.scheduled_at}
+          onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+        {isScheduled && (
+          <p className="text-xs text-blue-600 mt-1">予約送信モード：{new Date(form.scheduled_at).toLocaleString('ja-JP')} に自動送信されます</p>
+        )}
+      </div>
       {result && (
         <div className={`rounded px-4 py-3 text-sm ${result.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{result.message}</div>
       )}
       <button onClick={handleSend} disabled={sending || !form.subject || !form.body_html || !form.from_name || !form.from_email}
-        className="w-full bg-blue-600 text-white rounded py-2 px-4 font-medium disabled:opacity-50 hover:bg-blue-700 transition-colors">
-        {sending ? '送信中...' : '一括送信'}
+        className={`w-full text-white rounded py-2 px-4 font-medium disabled:opacity-50 transition-colors ${isScheduled ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'}`}>
+        {sending ? '処理中...' : isScheduled ? '配信を予約する' : '一括送信'}
       </button>
     </div>
   );
