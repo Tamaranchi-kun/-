@@ -243,7 +243,7 @@ function ListPanel() {
     const rows = parseCsv(csv);
     if (rows.length === 0) { setMessage('有効なデータが見つかりません'); return; }
 
-    const isEmailCol = (s: string) => /email|メールアドレス|mail/i.test(s);
+    const isEmailCol = (s: string) => /email|メールアドレス|mail|アドレス/i.test(s);
     const isNameCol = (s: string) => /^(name|名前|氏名|担当者名)$/i.test(s);
     const isCompanyCol = (s: string) => /^(company|会社名|company_name)$/i.test(s);
 
