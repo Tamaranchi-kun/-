@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     }
     const results = await Promise.all(
       chunks.map((chunk) =>
-        supabase.from('email_list_members').insert(chunk)
+        supabase.from('email_list_members').upsert(chunk, { ignoreDuplicates: true })
       )
     );
     const memberError = results.find((r) => r.error)?.error;
