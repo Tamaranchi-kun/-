@@ -278,15 +278,19 @@ function ListPanel() {
     if (recipients.length === 0) { setMessage('有効なメールアドレスが見つかりません'); return; }
 
     setLoading(true);
-    const res = await fetch('/api/email/recipients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
-      body: JSON.stringify({ recipients, list_id: selectedListId || null }),
-    });
-    const json = await res.json();
-    setMessage(res.ok ? `${json.inserted}件追加しました` : json.error ?? 'エラー');
-    setTextInput(''); setSheetsUrl('');
-    fetchRecipients(selectedListId); fetchLists();
+    try {
+      const res = await fetch('/api/email/recipients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+        body: JSON.stringify({ recipients, list_id: selectedListId || null }),
+      });
+      const json = await res.json();
+      setMessage(res.ok ? `${json.inserted}件追加しました` : `エラー: ${json.error ?? '不明'}`);
+      setTextInput(''); setSheetsUrl('');
+      fetchRecipients(selectedListId); fetchLists();
+    } catch (e) {
+      setMessage(`通信エラー: ${e instanceof Error ? e.message : String(e)}`);
+    }
     setLoading(false);
   }
 

@@ -60,19 +60,23 @@ export async function POST(req: Request) {
     .upsert(contacts, { onConflict: 'email' });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // リスト指定があればジャンクションテーブルにも追加（500件ずつバッチ処理）
+  // リスト指定があればジャンクションテーブルにも追加（500件ずつ並列バッチ処理）
   if (list_id) {
     const members = contacts.map((c) => ({ list_id, email: c.email }));
     const BATCH = 500;
+    const chunks: typeof members[] = [];
     for (let i = 0; i < members.length; i += BATCH) {
-      const chunk = members.slice(i, i + BATCH);
-      const { error: memberError } = await supabase
-        .from('email_list_members')
-        .upsert(chunk, { onConflict: 'list_id,email', ignoreDuplicates: true });
-      if (memberError) {
-        console.error('email_list_members upsert error:', memberError);
-        return NextResponse.json({ error: `リスト紐付け失敗: ${memberError.message}` }, { status: 500 });
-      }
+      chunks.push(members.slice(i, i + BATCH));
+    }
+    const results = await Promise.all(
+      chunks.map((chunk) =>
+        supabase.from('email_list_members').upsert(chunk, { onConflict: 'list_id,email', ignoreDuplicates: true })
+      )
+    );
+    const memberError = results.find((r) => r.error)?.error;
+    if (memberError) {
+      console.error('email_list_members upsert error:', memberError);
+      return NextResponse.json({ error: `リスト紐付け失敗: ${memberError.message}` }, { status: 500 });
     }
   }
 
