@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     .upsert(contacts, { onConflict: 'email' });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // リスト指定があればジャンクションテーブルにも追加（500件ずつ並列バッチ処理）
+  // リスト指定があればジャンクションテーブルにも追加（500件ずつ並列insert）
   if (list_id) {
     const members = contacts.map((c) => ({ list_id, email: c.email }));
     const BATCH = 500;
@@ -70,14 +70,21 @@ export async function POST(req: Request) {
     }
     const results = await Promise.all(
       chunks.map((chunk) =>
-        supabase.from('email_list_members').upsert(chunk, { onConflict: 'list_id,email', ignoreDuplicates: true })
+        supabase.from('email_list_members').insert(chunk)
       )
     );
     const memberError = results.find((r) => r.error)?.error;
     if (memberError) {
-      console.error('email_list_members upsert error:', memberError);
+      console.error('email_list_members insert error:', memberError);
       return NextResponse.json({ error: `リスト紐付け失敗: ${memberError.message}` }, { status: 500 });
     }
+    // 実際に入ったか確認
+    const { count } = await supabase
+      .from('email_list_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('list_id', list_id);
+    console.log(`email_list_members count for list ${list_id}: ${count}`);
+    return NextResponse.json({ inserted: contacts.length, members_in_list: count });
   }
 
   return NextResponse.json({ inserted: contacts.length });
