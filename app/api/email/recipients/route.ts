@@ -12,31 +12,50 @@ export async function GET(req: Request) {
   const listId = searchParams.get('list_id');
   const supabase = getSupabaseAdmin();
 
+  const DISPLAY_LIMIT = 100;
+
   if (listId) {
-    // リスト指定：ジャンクションテーブル経由で取得
-    const { data: members } = await supabase
+    // 総件数を取得
+    const { count: total } = await supabase
+      .from('email_list_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('list_id', listId);
+
+    // 表示用に先頭100件のemailのみ取得
+    const { data: members, error: mErr } = await supabase
       .from('email_list_members')
       .select('email')
-      .eq('list_id', listId);
+      .eq('list_id', listId)
+      .limit(DISPLAY_LIMIT);
+    if (mErr) return NextResponse.json({ error: mErr.message }, { status: 500 });
+
     const emails = (members ?? []).map((m) => m.email);
-    if (emails.length === 0) return NextResponse.json([]);
-    const { data } = await supabase
+    if (emails.length === 0) return NextResponse.json({ recipients: [], total: total ?? 0 });
+
+    const { data, error } = await supabase
       .from('email_lists')
       .select('email, name, company_name, created_at')
       .in('email', emails)
       .is('unsubscribed_at', null)
       .order('created_at', { ascending: false });
-    return NextResponse.json(data ?? []);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ recipients: data ?? [], total: total ?? 0 });
   }
 
-  // 全件取得
+  // 全件取得（総件数 + 先頭100件）
+  const { count: total } = await supabase
+    .from('email_lists')
+    .select('*', { count: 'exact', head: true })
+    .is('unsubscribed_at', null);
+
   const { data, error } = await supabase
     .from('email_lists')
     .select('email, name, company_name, created_at')
     .is('unsubscribed_at', null)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(DISPLAY_LIMIT);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data ?? []);
+  return NextResponse.json({ recipients: data ?? [], total: total ?? 0 });
 }
 
 // 受信者を追加（company_name・list_id対応）

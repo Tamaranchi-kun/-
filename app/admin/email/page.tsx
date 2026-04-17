@@ -166,6 +166,7 @@ function ListPanel() {
   const [selectedListId, setSelectedListId] = useState('');
   const [newListName, setNewListName] = useState('');
   const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [recipientTotal, setRecipientTotal] = useState(0);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   // インポートモード
@@ -182,7 +183,12 @@ function ListPanel() {
   const fetchRecipients = useCallback(async (listId: string) => {
     const url = listId ? `/api/email/recipients?list_id=${listId}` : '/api/email/recipients';
     const res = await fetch(url, { headers: { 'x-admin-key': ADMIN_KEY } });
-    if (res.ok) setRecipients(await res.json());
+    if (res.ok) {
+      const d = await res.json();
+      // 新形式 { recipients, total } と旧形式（配列）どちらにも対応
+      if (Array.isArray(d)) { setRecipients(d); setRecipientTotal(d.length); }
+      else { setRecipients(d.recipients ?? []); setRecipientTotal(d.total ?? 0); }
+    }
   }, []);
 
   useEffect(() => { fetchLists(); }, [fetchLists]);
@@ -422,7 +428,11 @@ function ListPanel() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-3 border-b border-gray-100 flex justify-between items-center">
           <span className="text-sm font-semibold text-gray-700">受信者一覧</span>
-          <span className="text-xs text-gray-400">{recipients.length}件</span>
+          <span className="text-xs text-gray-400">
+            {recipientTotal > recipients.length
+              ? `全 ${recipientTotal.toLocaleString()} 件中 ${recipients.length} 件表示`
+              : `${recipientTotal.toLocaleString()} 件`}
+          </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
