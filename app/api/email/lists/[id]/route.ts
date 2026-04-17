@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (req.headers.get('x-admin-key') !== process.env.ADMIN_API_KEY) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  // 認証は middleware.ts の Basic 認証で行う
   const { id } = await params;
   const supabase = getSupabaseAdmin();
   // リストを削除（受信者のlist_idはNULLになる）

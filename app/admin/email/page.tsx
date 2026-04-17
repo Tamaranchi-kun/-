@@ -35,7 +35,8 @@ type Recipient = {
 
 type Tab = 'send' | 'list' | 'stats';
 
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY ?? '';
+// 認証は middleware.ts の Basic 認証で行うため、ここで admin key を扱わない。
+// 同一オリジンの fetch はブラウザが Authorization ヘッダを自動送信する。
 
 export default function EmailAdminPage() {
   const [tab, setTab] = useState<Tab>('send');
@@ -77,15 +78,158 @@ export default function EmailAdminPage() {
 // ── 送信パネル ──────────────────────────────────────────────
 type FormState = { subject: string; from_name: string; from_email: string; body_html: string; body_text: string; list_id: string; scheduled_at: string };
 
+// ── 画像挿入パネル ────────────────────────────────────────
+type ImageInsertPanelProps = {
+  onInsert: (imgTag: string) => void;
+  onClose: () => void;
+};
+
+function ImageInsertPanel({ onInsert, onClose }: ImageInsertPanelProps) {
+  const [mode, setMode] = useState<'upload' | 'url'>('upload');
+  const [urlInput, setUrlInput] = useState('');
+  const [altText, setAltText] = useState('');
+  const [width, setWidth] = useState('100%');
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [uploadError, setUploadError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true); setUploadError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/email/upload-image', { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'アップロード失敗');
+      setPreviewUrl(json.url);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  function handleInsert() {
+    const src = mode === 'url' ? urlInput.trim() : previewUrl;
+    if (!src) return;
+    const styleWidth = width === 'custom' ? '' : `max-width:${width};`;
+    const tag = `<img src="${src}" alt="${altText}" style="${styleWidth}height:auto;display:block;margin:8px 0;" />`;
+    onInsert(tag);
+  }
+
+  const currentUrl = mode === 'url' ? urlInput.trim() : previewUrl;
+
+  return (
+    <div className="border border-blue-200 rounded-lg bg-blue-50 p-4 mt-2 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-blue-800">📷 画像を挿入</span>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg font-bold leading-none">×</button>
+      </div>
+
+      {/* モード切替 */}
+      <div className="flex gap-1">
+        {(['upload', 'url'] as const).map((m) => (
+          <button key={m} onClick={() => { setMode(m); setPreviewUrl(''); setUploadError(''); }}
+            className={`px-3 py-1 text-xs rounded border ${mode === m ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}>
+            {m === 'upload' ? '📁 ファイルアップロード' : '🔗 URLで挿入'}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'upload' && (
+        <div>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleFileChange} className="hidden" />
+          <button onClick={() => fileRef.current?.click()} disabled={uploading}
+            className="bg-white border border-gray-300 rounded px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50">
+            {uploading ? 'アップロード中...' : 'ファイルを選択（JPG / PNG / GIF / WebP・最大5MB）'}
+          </button>
+          {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
+          {previewUrl && <p className="text-xs text-green-700 mt-1 break-all">✓ アップロード完了：{previewUrl}</p>}
+        </div>
+      )}
+
+      {mode === 'url' && (
+        <input type="url" value={urlInput} onChange={(e) => setUrlInput(e.target.value)}
+          placeholder="https://example.com/image.jpg"
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white" />
+      )}
+
+      {/* 共通設定 */}
+      <div className="flex gap-3 items-end">
+        <div className="flex-1">
+          <label className="block text-xs text-gray-600 mb-1">幅</label>
+          <select value={width} onChange={(e) => setWidth(e.target.value)}
+            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white">
+            <option value="100%">100%（横幅いっぱい）</option>
+            <option value="75%">75%</option>
+            <option value="50%">50%</option>
+            <option value="300px">300px（固定）</option>
+            <option value="200px">200px（固定）</option>
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs text-gray-600 mb-1">代替テキスト（任意）</label>
+          <input type="text" value={altText} onChange={(e) => setAltText(e.target.value)}
+            placeholder="画像の説明"
+            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-white" />
+        </div>
+      </div>
+
+      {/* プレビュー */}
+      {currentUrl && (
+        <div className="bg-white border rounded p-2">
+          <p className="text-xs text-gray-400 mb-1">プレビュー</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={currentUrl} alt={altText || '画像プレビュー'} style={{ maxWidth: width === '100%' ? '100%' : width, maxHeight: '120px', objectFit: 'contain' }} />
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50">キャンセル</button>
+        <button onClick={handleInsert} disabled={!currentUrl}
+          className="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-40 font-medium">
+          HTMLに挿入する
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [lists, setLists] = useState<ListGroup[]>([]);
+  const [showImagePanel, setShowImagePanel] = useState(false);
+  const htmlRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    fetch('/api/email/lists', { headers: { 'x-admin-key': ADMIN_KEY } })
+    fetch('/api/email/lists')
       .then((r) => r.json()).then((d) => setLists(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
+
+  // カーソル位置に img タグを挿入する
+  function insertImage(imgTag: string) {
+    const ta = htmlRef.current;
+    if (!ta) {
+      setForm({ ...form, body_html: form.body_html + imgTag });
+      setShowImagePanel(false);
+      return;
+    }
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const newHtml = form.body_html.slice(0, start) + imgTag + form.body_html.slice(end);
+    setForm({ ...form, body_html: newHtml });
+    setShowImagePanel(false);
+    // カーソルをタグの直後に移動
+    requestAnimationFrame(() => {
+      ta.selectionStart = ta.selectionEnd = start + imgTag.length;
+      ta.focus();
+    });
+  }
 
   async function handleSend() {
     setSending(true); setResult(null);
@@ -93,7 +237,7 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
       const payload = { ...form, scheduled_at: form.scheduled_at || null };
       const res = await fetch('/api/email/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+        headers: { 'Content-Type': 'application/json'},
         body: JSON.stringify(payload),
       });
       const json = await res.json();
@@ -127,15 +271,45 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
           {lists.map((l) => <option key={l.id} value={l.id}>{l.name}（{l.member_count}件）</option>)}
         </select>
       </div>
+      {/* ── HTML 本文エディタ ── */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">本文 (HTML)</label>
-        <textarea value={form.body_html} onChange={(e) => setForm({ ...form, body_html: e.target.value })} rows={8}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono" placeholder="<p>こんにちは！</p>" />
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium text-gray-700">本文 (HTML)</label>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setShowImagePanel((v) => !v)}
+              className={`flex items-center gap-1 px-2 py-1 text-xs rounded border transition-colors ${showImagePanel ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600'}`}
+              title="画像を挿入">
+              📷 画像を挿入
+            </button>
+          </div>
+        </div>
+        <textarea
+          ref={htmlRef}
+          value={form.body_html}
+          onChange={(e) => setForm({ ...form, body_html: e.target.value })}
+          rows={10}
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono"
+          placeholder={"<p>こんにちは！</p>\n<p>本文をここに記入します。</p>"}
+        />
+        {showImagePanel && (
+          <ImageInsertPanel
+            onInsert={insertImage}
+            onClose={() => setShowImagePanel(false)}
+          />
+        )}
+        <p className="text-xs text-gray-400 mt-1">
+          HTMLタグ使用可。テキストのみの場合は <code className="bg-gray-100 px-1 rounded">&lt;p&gt;文章&lt;/p&gt;</code> で囲んでください。
+        </p>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">本文 (テキスト・任意)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          本文 (テキスト版・推奨)
+          <span className="ml-2 text-xs font-normal text-gray-400">迷惑メール対策・HTML非対応環境向け</span>
+        </label>
         <textarea value={form.body_text} onChange={(e) => setForm({ ...form, body_text: e.target.value })} rows={4}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="プレーンテキスト版（迷惑メール対策に有効）" />
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder={"こんにちは！\n\n本文のテキスト版を入力（HTMLと同じ内容で可）。"} />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -176,13 +350,13 @@ function ListPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchLists = useCallback(async () => {
-    const res = await fetch('/api/email/lists', { headers: { 'x-admin-key': ADMIN_KEY } });
+    const res = await fetch('/api/email/lists');
     if (res.ok) { const d = await res.json(); setLists(Array.isArray(d) ? d : []); }
   }, []);
 
   const fetchRecipients = useCallback(async (listId: string) => {
     const url = listId ? `/api/email/recipients?list_id=${listId}` : '/api/email/recipients';
-    const res = await fetch(url, { headers: { 'x-admin-key': ADMIN_KEY } });
+    const res = await fetch(url);
     if (res.ok) {
       const d = await res.json();
       // 新形式 { recipients, total } と旧形式（配列）どちらにも対応
@@ -197,7 +371,7 @@ function ListPanel() {
   async function createList() {
     if (!newListName.trim()) return;
     const res = await fetch('/api/email/lists', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      method: 'POST', headers: { 'Content-Type': 'application/json'},
       body: JSON.stringify({ name: newListName.trim() }),
     });
     if (res.ok) { const d = await res.json(); setNewListName(''); await fetchLists(); setSelectedListId(d.id); }
@@ -205,7 +379,7 @@ function ListPanel() {
 
   async function deleteList(id: string) {
     if (!confirm('このリストを削除しますか？（受信者データは残ります）')) return;
-    await fetch(`/api/email/lists/${id}`, { method: 'DELETE', headers: { 'x-admin-key': ADMIN_KEY } });
+    await fetch(`/api/email/lists/${id}`, { method: 'DELETE' });
     if (selectedListId === id) setSelectedListId('');
     fetchLists();
   }
@@ -214,7 +388,7 @@ function ListPanel() {
     if (!confirm(`「${email}」を${selectedListId ? 'このリストから' : '完全に'}削除しますか？`)) return;
     await fetch('/api/email/recipients', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      headers: { 'Content-Type': 'application/json'},
       body: JSON.stringify({ email, list_id: selectedListId || null }),
     });
     fetchRecipients(selectedListId);
@@ -223,6 +397,8 @@ function ListPanel() {
 
   // RFC4180準拠のCSVパーサー（ダブルクォート・改行含むフィールド対応）
   function parseCsv(text: string): string[][] {
+    // UTF-8 BOM除去（Excel出力のCSVなどで先頭に混入する）
+    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
     const rows: string[][] = [];
     let row: string[] = [];
     let field = '';
@@ -287,7 +463,7 @@ function ListPanel() {
     try {
       const res = await fetch('/api/email/recipients', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+        headers: { 'Content-Type': 'application/json'},
         body: JSON.stringify({ recipients, list_id: selectedListId || null }),
       });
       const json = await res.json();
@@ -315,7 +491,7 @@ function ListPanel() {
     setLoading(true);
     const res = await fetch('/api/email/import-sheets', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      headers: { 'Content-Type': 'application/json'},
       body: JSON.stringify({ url: sheetsUrl }),
     });
     const json = await res.json();
@@ -480,14 +656,14 @@ function StatsPanel() {
   const [preview, setPreview] = useState<CampaignStats | null>(null);
 
   useEffect(() => {
-    fetch('/api/email/lists', { headers: { 'x-admin-key': ADMIN_KEY } })
+    fetch('/api/email/lists')
       .then((r) => r.json()).then((d) => setLists(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   useEffect(() => {
     setLoading(true);
     const url = filterListId ? `/api/email/stats?list_id=${filterListId}` : '/api/email/stats';
-    fetch(url, { headers: { 'x-admin-key': ADMIN_KEY } })
+    fetch(url)
       .then((r) => r.json()).then((d) => { setCampaigns(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
   }, [filterListId]);
@@ -565,7 +741,7 @@ function StatsPanel() {
               <button onClick={() => setPreview(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
             </div>
             <div className="overflow-y-auto flex-1 p-6">
-              <iframe srcDoc={preview.body_html} className="w-full border rounded" style={{ height: '400px' }} title="メールプレビュー" />
+              <iframe srcDoc={preview.body_html} sandbox="" referrerPolicy="no-referrer" className="w-full border rounded" style={{ height: '400px' }} title="メールプレビュー" />
               {preview.body_text && (
                 <div className="mt-4">
                   <p className="text-xs text-gray-500 mb-1 font-medium">テキスト版</p>

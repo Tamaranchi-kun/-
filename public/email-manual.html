@@ -56,9 +56,11 @@
       <ul>
         <li><a href="#send-flow">送信手順</a></li>
         <li><a href="#send-schedule">配信予約（日時指定）</a></li>
+        <li><a href="#send-format">HTML版・テキスト版の使い分け</a> <span class="badge badge-blue">NEW</span></li>
         <li><a href="#send-html">HTML版の書き方・テンプレート</a></li>
+        <li><a href="#send-image">画像の挿入方法</a> <span class="badge badge-blue">NEW</span></li>
         <li><a href="#send-text">テキスト版の書き方</a></li>
-        <li><a href="#send-subject">件名で開封率を上げるコツ</a></li>
+        <li><a href="#send-subject">件名で開封率を上げるコツ</a> <span class="badge badge-green">4-7</span></li>
       </ul>
     </li>
     <li><a href="#stats">効果検証（開封率・バウンス率）</a></li>
@@ -233,6 +235,58 @@ suzuki@company.jp</pre>
   誤った日時で予約した場合は、北氏に連絡してデータベースから削除してもらってください。
 </div>
 
+<h3 id="send-format">4-3. HTML版・テキスト版の使い分け</h3>
+
+<p>このシステムの本文入力欄は「<strong>HTML版</strong>（必須）」と「<strong>テキスト版</strong>（推奨）」の2つがあります。<br>
+それぞれの役割を理解して、<strong>両方入力することを強くおすすめします。</strong></p>
+
+<table>
+  <tr>
+    <th style="width:140px;">比較項目</th>
+    <th>HTML版（必須）</th>
+    <th>テキスト版（推奨）</th>
+  </tr>
+  <tr>
+    <td><strong>役割</strong></td>
+    <td>メールの本体。受信者に表示されるのはこちら</td>
+    <td>HTML版が表示できない環境向けの代替テキスト</td>
+  </tr>
+  <tr>
+    <td><strong>見た目</strong></td>
+    <td>太字・リンク・画像など装飾できる</td>
+    <td>文字のみ（装飾なし）</td>
+  </tr>
+  <tr>
+    <td><strong>画像</strong></td>
+    <td>✅ 挿入できる</td>
+    <td>❌ 挿入できない（URLを文字で貼る）</td>
+  </tr>
+  <tr>
+    <td><strong>必須か</strong></td>
+    <td>✅ <strong>必須</strong>（ないと送信ボタンが押せない）</td>
+    <td>任意だが入力を強く推奨</td>
+  </tr>
+  <tr>
+    <td><strong>書き方</strong></td>
+    <td>HTMLタグを使う（&lt;p&gt;, &lt;br&gt; など）</td>
+    <td>タグ不要。普通の文章をそのまま書く</td>
+  </tr>
+</table>
+
+<div class="tip">
+  ✅ <strong>「両方入れる」が正解です</strong><br>
+  ・<strong>HTML版のみ</strong>：Gmailなど主要メーラーでは表示されるが、迷惑メール判定されやすくなる<br>
+  ・<strong>テキスト版のみ</strong>：送信ボタンが押せないため使用不可<br>
+  ・<strong>両方入れる</strong>：到達率が上がり、HTML非対応の古い環境でも読める。<strong>推奨</strong>
+</div>
+
+<div class="note">
+  📌 <strong>実際の作業フロー（最短）</strong><br>
+  <span class="step-num">1</span> 下記テンプレートをHTML版にコピー → 〔　〕部分を書き換える<br>
+  <span class="step-num">2</span> HTMLタグ（&lt;p&gt;〜&lt;/p&gt; など）を取り除いた文章をテキスト版に貼り付ける<br>
+  これだけでOKです。テキスト版はHTML版と同じ内容で構いません。
+</div>
+
 <h3 id="send-html">4-4. HTML版の書き方・テンプレート</h3>
 
 <p>以下をコピーして〔　〕部分を書き換えてください。基本タグは4つだけです。</p>
@@ -269,7 +323,60 @@ suzuki@company.jp</pre>
 Email：〔メールアドレス〕&lt;br&gt;
 ━━━━━━━━━━━━━━━━━&lt;/p&gt;</pre>
 
-<h3 id="send-text">4-5. テキスト版の書き方</h3>
+<h3 id="send-image">4-5. 画像の挿入方法</h3>
+
+<p>HTML本文に画像を挿入できます。サービス紹介画像・実績グラフ・QRコードなどを入れると視覚的に訴求力が上がります。</p>
+
+<h4>▼ 挿入手順</h4>
+<div class="step"><span class="step-num">1</span>「送信」タブで本文（HTML）欄の右上にある <strong>「📷 画像を挿入」</strong> ボタンをクリック</div>
+<div class="step"><span class="step-num">2</span>挿入方法を選ぶ</div>
+
+<table>
+  <tr>
+    <th style="width:180px;">方法</th>
+    <th>使い方</th>
+    <th>おすすめ場面</th>
+  </tr>
+  <tr>
+    <td>📁 ファイルアップロード</td>
+    <td>「ファイルを選択」でPC内の画像を選ぶ → 自動でアップロードされる</td>
+    <td>手元の画像を使いたい時（JPG/PNG/GIF/WebP、最大5MB）</td>
+  </tr>
+  <tr>
+    <td>🔗 URLで挿入</td>
+    <td>自社サイトや外部サービスにある画像のURLを直接貼り付ける</td>
+    <td>自社サイトに掲載済みの画像を使いたい時</td>
+  </tr>
+</table>
+
+<div class="step"><span class="step-num">3</span>「幅」を選ぶ（100%=横幅いっぱい、300px=名刺サイズ感など）</div>
+<div class="step"><span class="step-num">4</span>「代替テキスト」（任意）を入力 → 画像が表示されない環境で代わりに表示される説明文</div>
+<div class="step"><span class="step-num">5</span>プレビューで見た目を確認 → 「HTMLに挿入する」をクリック</div>
+<div class="step"><span class="step-num">6</span>HTML本文のカーソル位置に <code>&lt;img&gt;</code> タグが自動で入る</div>
+
+<div class="tip">
+  ✅ <strong>画像を使う際のポイント</strong><br>
+  ・ファイルアップロードした画像はサーバーに保存され、受信者のメーラーから直接読み込まれます<br>
+  ・GIF アニメーションも使用可能です（一部メーラーでは静止画になります）<br>
+  ・画像の幅は「100%」にしておくとスマートフォンでも崩れず表示されます<br>
+  ・画像だけのメールは迷惑メール判定されやすいため、必ずテキストと組み合わせてください
+</div>
+
+<div class="warn">
+  ⚠️ <strong>よくある失敗</strong><br>
+  ・<strong>URLで挿入</strong>の場合、元の画像が削除・移動されると表示されなくなります<br>
+  ・ファイルサイズが大きい（5MB超）と読み込みが遅くなります。事前に圧縮推奨<br>
+  ・テキスト版には画像は表示されません。重要な情報は文字でも補足してください
+</div>
+
+<h4>▼ 挿入後の HTML イメージ</h4>
+<pre>&lt;p&gt;GENBAの導入実績をご覧ください。&lt;/p&gt;
+
+&lt;img src="https://..." alt="GENBA導入実績" style="max-width:100%;height:auto;display:block;margin:8px 0;" /&gt;
+
+&lt;p&gt;詳細はお気軽にお問い合わせください。&lt;/p&gt;</pre>
+
+<h3 id="send-text">4-6. テキスト版の書き方（推奨）</h3>
 <p>HTML版と同じ内容を、タグ（&lt; &gt;）を取り除いてそのまま書くだけです。</p>
 
 <pre>〔会社名〕 〔担当者名〕様
@@ -302,7 +409,7 @@ Email：〔メールアドレス〕
   ③ テキストメーラーや古いシステムでも読める
 </div>
 
-<h3 id="send-subject">4-6. 件名で開封率を上げるコツ</h3>
+<h3 id="send-subject">4-7. 件名で開封率を上げるコツ</h3>
 
 <table>
   <tr><th>ポイント</th><th>悪い例</th><th>良い例</th></tr>
@@ -387,6 +494,14 @@ Email：〔メールアドレス〕
   <tr>
     <td>タブを切り替えたら入力内容が消えた</td>
     <td>このシステムはタブ切り替えで内容が消えない仕様。ページをリロードした場合は消えるため注意</td>
+  </tr>
+  <tr>
+    <td>画像を挿入したがメールで表示されない</td>
+    <td>URLで挿入した場合、元画像が非公開・削除されていると表示されない。ファイルアップロードを使うと確実</td>
+  </tr>
+  <tr>
+    <td>HTML版とテキスト版、どちらを入力すればいい？</td>
+    <td>両方の入力を推奨。HTML版は必須（ないと送信不可）。テキスト版は迷惑メール対策と到達率向上のために入力する。HTML版の内容をタグなしでコピーするだけでOK</td>
   </tr>
 </table>
 
