@@ -5,11 +5,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin';
 const BATCH_SIZE = 50; // Resend推奨バッチサイズ
 
 export async function POST(req: Request) {
-  const apiKey = req.headers.get('x-admin-key');
-  if (apiKey !== process.env.ADMIN_API_KEY) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  // 認証は middleware.ts の Basic 認証で行う
   const { subject, body_html, body_text, from_name, from_email, list_id, scheduled_at } = await req.json();
   if (!subject || !body_html || !from_name || !from_email) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -123,5 +119,11 @@ export async function POST(req: Request) {
     .update({ status: 'sent', total_sent: totalSent, sent_at: new Date().toISOString() })
     .eq('id', campaign.id);
 
-  return NextResponse.json({ campaign_id: campaign.id, total_sent: totalSent, ...(lastError ? { error_detail: lastError } : {}) });
+  // 外部にraw errorを露出しない。詳細はログに残し、UIには失敗有無のみ返す。
+  if (lastError) console.error('send partial failure:', lastError);
+  return NextResponse.json({
+    campaign_id: campaign.id,
+    total_sent: totalSent,
+    ...(lastError ? { error_detail: '一部の送信に失敗しました（詳細はサーバーログを参照）' } : {}),
+  });
 }

@@ -5,8 +5,13 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin';
 const BATCH_SIZE = 50;
 
 export async function GET(req: Request) {
-  // Vercel Cron認証
-  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Vercel Cron認証（CRON_SECRET未設定なら素通りさせず503で停止）
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error('CRON_SECRET is not configured');
+    return NextResponse.json({ error: 'Server misconfigured' }, { status: 503 });
+  }
+  if (req.headers.get('authorization') !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -29,12 +34,15 @@ export async function GET(req: Request) {
 
   for (const campaign of campaigns) {
     // 送信中に更新（二重送信防止）
-    const { error: lockError } = await supabase
+    // status='scheduled'のレコードを'sending'に更新できた場合のみロック獲得成功とみなす。
+    // selectを付けることで実際に更新された行を確認する（二重実行時は0件返る）。
+    const { data: locked, error: lockError } = await supabase
       .from('email_campaigns')
       .update({ status: 'sending' })
       .eq('id', campaign.id)
-      .eq('status', 'scheduled');
-    if (lockError) continue;
+      .eq('status', 'scheduled')
+      .select('id');
+    if (lockError || !locked || locked.length === 0) continue;
 
     // 受信者を取得
     let recipientEmails: string[] | null = null;

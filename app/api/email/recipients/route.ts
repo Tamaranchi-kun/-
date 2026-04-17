@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
-function authCheck(req: Request) {
-  return req.headers.get('x-admin-key') === process.env.ADMIN_API_KEY;
-}
+// 認証は middleware.ts の Basic 認証で行う
 
 // 受信者一覧取得（list_idでフィルタ可能）
 export async function GET(req: Request) {
-  if (!authCheck(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const listId = searchParams.get('list_id');
   const supabase = getSupabaseAdmin();
@@ -60,7 +57,6 @@ export async function GET(req: Request) {
 
 // 受信者を追加（company_name・list_id対応）
 export async function POST(req: Request) {
-  if (!authCheck(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { recipients, list_id } = await req.json();
   if (!Array.isArray(recipients) || recipients.length === 0) {
     return NextResponse.json({ error: 'recipients must be a non-empty array' }, { status: 400 });
@@ -111,7 +107,6 @@ export async function POST(req: Request) {
 
 // 受信者を削除（list_id指定時はリストから外すのみ、なければ完全削除）
 export async function DELETE(req: Request) {
-  if (!authCheck(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { email, list_id } = await req.json();
   if (!email) return NextResponse.json({ error: 'email is required' }, { status: 400 });
   const supabase = getSupabaseAdmin();

@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(req: Request) {
-  if (req.headers.get('x-admin-key') !== process.env.ADMIN_API_KEY) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  // 認証は middleware.ts の Basic 認証で行う
   const supabase = getSupabaseAdmin();
 
   const { searchParams } = new URL(req.url);
