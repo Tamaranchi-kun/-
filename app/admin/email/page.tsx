@@ -240,6 +240,7 @@ function ListPanel() {
 
   // CSVテキストをパースしてインポート
   async function importFromText(csv: string) {
+    if (!selectedListId) { setMessage('⚠️ 先にリストを選択してください（青くなっている状態でアップロード）'); return; }
     const rows = parseCsv(csv);
     if (rows.length === 0) { setMessage('有効なデータが見つかりません'); return; }
 
@@ -379,6 +380,9 @@ function ListPanel() {
               ヘッダー行がある場合は自動検出。ない場合は1列目をメールアドレスとして読み込みます。
             </p>
             <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+            {!selectedListId && (
+              <p className="text-xs text-orange-600 mb-2 font-medium">⚠️ リストを選択してからアップロードしてください</p>
+            )}
             <button onClick={() => fileInputRef.current?.click()} disabled={loading}
               className="bg-blue-600 text-white rounded py-2 px-6 text-sm font-medium disabled:opacity-50 hover:bg-blue-700">
               {loading ? '取り込み中...' : 'CSVファイルを選択'}
