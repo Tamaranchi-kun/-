@@ -285,7 +285,9 @@ function ListPanel() {
         body: JSON.stringify({ recipients, list_id: selectedListId || null }),
       });
       const json = await res.json();
-      setMessage(res.ok ? `${json.inserted}件追加しました` : `エラー: ${json.error ?? '不明'}`);
+      setMessage(res.ok
+        ? `${json.inserted}件追加しました${json.members_in_list != null ? `（リスト内: ${json.members_in_list}件）` : ''}`
+        : `エラー: ${json.error ?? '不明'}`);
       setTextInput(''); setSheetsUrl('');
       fetchRecipients(selectedListId); fetchLists();
     } catch (e) {
