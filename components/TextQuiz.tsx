@@ -8,13 +8,19 @@ export default function TextQuiz({ onNext }: { onNext: () => void }) {
   const addScore = useGameStore((s) => s.addScore);
   const [selected, setSelected] = useState<'A' | 'B' | null>(null);
 
-  const humanIdx = Math.floor(Math.random() * humanPoems.length);
-  const aiIdx = Math.floor(Math.random() * aiPoems.length);
-  const isHumanA = Math.random() > 0.5;
-
-  const poemA = isHumanA ? humanPoems[humanIdx] : aiPoems[aiIdx];
-  const poemB = isHumanA ? aiPoems[aiIdx] : humanPoems[humanIdx];
-  const humanLabel = isHumanA ? 'A' : 'B';
+  // Compute the randomized question setup once. Doing this during render would
+  // re-roll on every re-render (mis-grading correct answers) and cause SSR/CSR
+  // hydration mismatches in React 19.
+  const [{ poemA, poemB, humanLabel }] = useState(() => {
+    const humanIdx = Math.floor(Math.random() * humanPoems.length);
+    const aiIdx = Math.floor(Math.random() * aiPoems.length);
+    const isHumanA = Math.random() > 0.5;
+    return {
+      poemA: isHumanA ? humanPoems[humanIdx] : aiPoems[aiIdx],
+      poemB: isHumanA ? aiPoems[aiIdx] : humanPoems[humanIdx],
+      humanLabel: (isHumanA ? 'A' : 'B') as 'A' | 'B',
+    };
+  });
 
   function choose(label: 'A' | 'B') {
     if (selected) return;

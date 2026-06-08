@@ -116,8 +116,10 @@ function ImageInsertPanel({ onInsert, onClose }: ImageInsertPanelProps) {
   function handleInsert() {
     const src = mode === 'url' ? urlInput.trim() : previewUrl;
     if (!src) return;
+    // HTML属性に安全に埋め込む（" < > & のエスケープ）。属性破壊・XSSを防ぐ。
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const styleWidth = width === 'custom' ? '' : `max-width:${width};`;
-    const tag = `<img src="${src}" alt="${altText}" style="${styleWidth}height:auto;display:block;margin:8px 0;" />`;
+    const tag = `<img src="${esc(src)}" alt="${esc(altText)}" style="${styleWidth}height:auto;display:block;margin:8px 0;" />`;
     onInsert(tag);
   }
 
@@ -204,7 +206,14 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [lists, setLists] = useState<ListGroup[]>([]);
   const [showImagePanel, setShowImagePanel] = useState(false);
+  const [confirm, setConfirm] = useState<{ label: string; count: number | null } | null>(null);
   const htmlRef = useRef<HTMLTextAreaElement>(null);
+
+  // datetime-local の min（ローカル現在時刻）。マウント時に一度だけ算出（SSR不整合回避）。
+  const [minDateTime] = useState(() => {
+    const now = new Date();
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  });
 
   useEffect(() => {
     fetch('/api/email/lists')
@@ -231,10 +240,32 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
     });
   }
 
-  async function handleSend() {
+  const isScheduled = !!form.scheduled_at && new Date(form.scheduled_at) > new Date();
+  // 予約日時が入力済みなのに未来でない＝過去/現在。無音で即時送信に切替わるのを禁止する。
+  const schedulePast = !!form.scheduled_at && new Date(form.scheduled_at) <= new Date();
+
+  // 送信確認モーダルを開く（誤クリックでの全件配信を防止）。対象件数を取得して提示。
+  async function requestSend() {
+    if (schedulePast) return;
+    const selected = lists.find((l) => l.id === form.list_id);
+    const label = selected ? selected.name : 'すべての受信者';
+    let count: number | null = selected ? selected.member_count : null;
+    if (count == null) {
+      try {
+        const res = await fetch('/api/email/recipients');
+        if (res.ok) { const d = await res.json(); count = typeof d.total === 'number' ? d.total : null; }
+      } catch { /* 件数取得失敗時も送信自体は確認のうえ可能 */ }
+    }
+    setConfirm({ label, count });
+  }
+
+  async function doSend() {
+    setConfirm(null);
     setSending(true); setResult(null);
     try {
-      const payload = { ...form, scheduled_at: form.scheduled_at || null };
+      // datetime-local はローカル時刻。サーバー(UTC)とのズレ防止のためISO(UTC)へ変換して送信。
+      const scheduledIso = form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null;
+      const payload = { ...form, scheduled_at: scheduledIso };
       const res = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json'},
@@ -245,7 +276,7 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
         if (json.scheduled) {
           setResult({ ok: true, message: `予約完了：${new Date(form.scheduled_at).toLocaleString('ja-JP')} に送信されます` });
         } else {
-          setResult({ ok: true, message: `送信完了: ${json.total_sent}件` });
+          setResult({ ok: true, message: `送信完了: ${json.total_sent}件（対象${json.total_recipients ?? '?'}件）` });
         }
         setForm({ ...form, subject: '', body_html: '', body_text: '', scheduled_at: '' });
       } else {
@@ -254,8 +285,6 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
     } catch { setResult({ ok: false, message: '通信エラー' }); }
     finally { setSending(false); }
   }
-
-  const isScheduled = !!form.scheduled_at && new Date(form.scheduled_at) > new Date();
 
   return (
     <div className="bg-white rounded-lg shadow p-6 space-y-4">
@@ -316,20 +345,46 @@ function SendPanel({ form, setForm }: { form: FormState; setForm: (f: FormState)
           送信日時
           <span className="ml-2 text-xs text-gray-400 font-normal">（空白 = 即時送信）</span>
         </label>
-        <input type="datetime-local" value={form.scheduled_at}
+        <input type="datetime-local" value={form.scheduled_at} min={minDateTime}
           onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
         {isScheduled && (
           <p className="text-xs text-blue-600 mt-1">予約送信モード：{new Date(form.scheduled_at).toLocaleString('ja-JP')} に自動送信されます</p>
         )}
+        {schedulePast && (
+          <p className="text-xs text-red-600 mt-1">⚠️ 過去の日時です。未来の日時を指定するか、空欄（即時送信）にしてください。</p>
+        )}
       </div>
       {result && (
         <div className={`rounded px-4 py-3 text-sm ${result.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{result.message}</div>
       )}
-      <button onClick={handleSend} disabled={sending || !form.subject || !form.body_html || !form.from_name || !form.from_email}
+      <button onClick={requestSend} disabled={sending || schedulePast || !form.subject || !form.body_html || !form.from_name || !form.from_email}
         className={`w-full text-white rounded py-2 px-4 font-medium disabled:opacity-50 transition-colors ${isScheduled ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'}`}>
         {sending ? '処理中...' : isScheduled ? '配信を予約する' : '一括送信'}
       </button>
+
+      {/* 送信前確認モーダル（誤クリックによる全件配信の防止） */}
+      {confirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true"
+          onClick={() => setConfirm(null)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900">{isScheduled ? '配信を予約しますか？' : '本当に送信しますか？'}</h3>
+            <div className="text-sm text-gray-700 space-y-1">
+              <p>送信先：<span className="font-medium">{confirm.label}</span></p>
+              <p>対象件数：<span className="font-medium">{confirm.count != null ? `約${confirm.count.toLocaleString()}件` : '取得できませんでした'}</span></p>
+              <p>件名：<span className="font-medium">{form.subject || '(未入力)'}</span></p>
+              {isScheduled && <p>送信予定：<span className="font-medium">{new Date(form.scheduled_at).toLocaleString('ja-JP')}</span></p>}
+            </div>
+            <p className="text-xs text-red-600">この操作は取り消せません。内容と送信先を必ず確認してください。</p>
+            <div className="flex gap-2 justify-end pt-1">
+              <button onClick={() => setConfirm(null)} className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">キャンセル</button>
+              <button onClick={doSend} className={`px-4 py-2 text-sm text-white rounded font-medium ${isScheduled ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                {isScheduled ? '予約を確定する' : '送信する'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

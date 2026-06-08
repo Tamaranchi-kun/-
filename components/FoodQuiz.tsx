@@ -12,7 +12,9 @@ export default function FoodQuiz({ onNext }: { onNext: () => void }) {
   const [foods, setFoods] = useState<[Food, Food] | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const query = FOOD_QUERIES[Math.floor(Math.random() * FOOD_QUERIES.length)];
+  // Pick the query once. Computing it during render would re-roll on every
+  // re-render, and reading it from inside the effect would be a stale closure.
+  const [query] = useState(() => FOOD_QUERIES[Math.floor(Math.random() * FOOD_QUERIES.length)]);
 
   useEffect(() => {
     async function load() {
@@ -28,7 +30,7 @@ export default function FoodQuiz({ onNext }: { onNext: () => void }) {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [query]);
 
   if (loading) return <div className="text-center py-20 text-gray-400">食品データを取得中...</div>;
   if (!foods) return <div className="text-center py-20 text-gray-400">データを取得できませんでした</div>;

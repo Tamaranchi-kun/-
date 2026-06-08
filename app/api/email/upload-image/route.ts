@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
+export const runtime = 'nodejs';
+
 const BUCKET = 'email-images';
 const MAX_MB = 5;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+// 拡張子はクライアント由来のファイル名ではなく、検証済みのMIMEタイプから決定する
+const EXT_BY_TYPE: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+};
 
 // 認証は middleware.ts の Basic 認証で行う
 export async function POST(req: Request) {
@@ -26,7 +35,7 @@ export async function POST(req: Request) {
   }
 
   const supabase = getSupabaseAdmin();
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const ext = EXT_BY_TYPE[file.type] ?? 'bin';
   // パスにタイムスタンプとランダム値を入れて衝突を防ぐ
   const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 

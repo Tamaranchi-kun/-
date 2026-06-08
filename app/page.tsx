@@ -1,8 +1,8 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useGameStore } from '@/lib/store';
+import { useGameStore, type Category } from '@/lib/store';
 
-const CATEGORIES = [
+const CATEGORIES: { id: Category; emoji: string; title: string; desc: string }[] = [
   { id: 'image', emoji: '🖼️', title: '画像', desc: 'AI生成 vs 本物写真' },
   { id: 'audio', emoji: '🎵', title: '音楽', desc: '高音質 vs 低音質' },
   { id: 'food', emoji: '🍱', title: '料理', desc: '栄養スコア対決' },
@@ -13,8 +13,8 @@ export default function Home() {
   const router = useRouter();
   const { setCategory } = useGameStore();
 
-  function start(id: string) {
-    setCategory(id as any);
+  function start(id: Category) {
+    setCategory(id);
     router.push(`/quiz/${id}`);
   }
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type Category = 'image' | 'audio' | 'food' | 'text';
+export type Category = 'image' | 'audio' | 'food' | 'text';
 
 interface GameState {
   category: Category | null;
