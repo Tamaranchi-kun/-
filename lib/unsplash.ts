@@ -6,6 +6,7 @@ export async function fetchUnsplashImage(query: string) {
         Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
       },
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(8000),
     }
   );
   if (!res.ok) throw new Error('Unsplash API error');

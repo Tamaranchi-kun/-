@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
+export const runtime = 'nodejs';
+
 export async function GET(req: Request) {
-  // 認証は middleware.ts の Basic 認証で行う
+  // 認証は proxy.ts の Basic 認証で行う
   const supabase = getSupabaseAdmin();
 
   const { searchParams } = new URL(req.url);
@@ -27,31 +29,43 @@ export async function GET(req: Request) {
     for (const l of lists ?? []) listNameMap[l.id] = l.name;
   }
 
-  // 各キャンペーンのイベント集計
+  // 各キャンペーンのイベント集計。
+  // 開封率の水増し対策として「(キャンペーン,メール)単位の一意」で数える
+  // （自前ピクセルとResendネイティブの二重計上・プリフェッチ重複・再送重複を排除）。
+  // PostgRESTの暗黙1000件上限による無音の過少集計を避けるためページングする。
   const campaignIds = campaigns.map((c) => c.id);
-  const { data: events } = await supabase
-    .from('email_events')
-    .select('campaign_id, event_type')
-    .in('campaign_id', campaignIds)
-    .in('event_type', ['opened', 'bounced']);
-
-  const stats: Record<string, { opened: number; bounced: number }> = {};
-  for (const ev of events ?? []) {
-    if (!stats[ev.campaign_id]) stats[ev.campaign_id] = { opened: 0, bounced: 0 };
-    if (ev.event_type === 'opened') stats[ev.campaign_id].opened++;
-    if (ev.event_type === 'bounced') stats[ev.campaign_id].bounced++;
+  const PAGE = 1000;
+  const seen: Record<string, { opened: Set<string>; bounced: Set<string> }> = {};
+  for (let from = 0; ; from += PAGE) {
+    const { data: events, error: evErr } = await supabase
+      .from('email_events')
+      .select('campaign_id, email, event_type')
+      .in('campaign_id', campaignIds)
+      .in('event_type', ['opened', 'bounced'])
+      .range(from, from + PAGE - 1);
+    if (evErr) return NextResponse.json({ error: evErr.message }, { status: 500 });
+    if (!events || events.length === 0) break;
+    for (const ev of events) {
+      const bucket = (seen[ev.campaign_id] ??= { opened: new Set(), bounced: new Set() });
+      const key = ev.email ?? '';
+      if (ev.event_type === 'opened') bucket.opened.add(key);
+      else if (ev.event_type === 'bounced') bucket.bounced.add(key);
+    }
+    if (events.length < PAGE) break;
   }
 
   const result = campaigns.map((c) => {
-    const s = stats[c.id] ?? { opened: 0, bounced: 0 };
+    const s = seen[c.id];
+    const opened = s ? s.opened.size : 0;
+    const bounced = s ? s.bounced.size : 0;
     const pct = (n: number) => c.total_sent > 0 ? `${((n / c.total_sent) * 100).toFixed(1)}%` : '-%';
     return {
       ...c,
       list_name: c.list_id ? (listNameMap[c.list_id] ?? '不明') : 'すべて',
-      opened: s.opened,
-      bounced: s.bounced,
-      open_rate: pct(s.opened),
-      bounce_rate: pct(s.bounced),
+      opened,
+      bounced,
+      open_rate: pct(opened),
+      bounce_rate: pct(bounced),
     };
   });
 

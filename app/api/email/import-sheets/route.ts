@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+const MAX_CSV_BYTES = 5 * 1024 * 1024; // 5MB 上限（大容量レスポンスによるメモリ枯渇を防止）
+
 // Google スプレッドシートのCSVをサーバー側でフェッチ（CORS回避）
-// 認証は middleware.ts の Basic 認証で行う
+// 認証は proxy.ts の Basic 認証で行う
 export async function POST(req: Request) {
   const { url } = await req.json();
   if (typeof url !== 'string' || !url) {
@@ -30,14 +34,23 @@ export async function POST(req: Request) {
   const csvUrl = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? `&gid=${encodeURIComponent(gid)}` : ''}`;
 
   try {
-    const res = await fetch(csvUrl, { redirect: 'follow' });
+    // Googleのexportは googleusercontent.com へリダイレクトしてCSVを返すため follow は許容。
+    // タイムアウトとサイズ上限で上流ハング・メモリ枯渇を防ぐ。
+    const res = await fetch(csvUrl, { redirect: 'follow', signal: AbortSignal.timeout(15000) });
     if (!res.ok) {
       return NextResponse.json(
         { error: 'シートの取得に失敗しました。「ウェブに公開」設定を確認してください。' },
         { status: 502 },
       );
     }
+    const lenHeader = Number(res.headers.get('content-length') ?? '0');
+    if (lenHeader && lenHeader > MAX_CSV_BYTES) {
+      return NextResponse.json({ error: 'シートが大きすぎます（5MB以下にしてください）' }, { status: 413 });
+    }
     const text = await res.text();
+    if (text.length > MAX_CSV_BYTES) {
+      return NextResponse.json({ error: 'シートが大きすぎます（5MB以下にしてください）' }, { status: 413 });
+    }
     return NextResponse.json({ csv: text });
   } catch (err) {
     console.error('sheets fetch error:', err);
