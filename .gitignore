@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# プレースホルダのみの例（必須環境変数の文書化）は追跡する
+!.env.example
 
 # vercel
 .vercel
