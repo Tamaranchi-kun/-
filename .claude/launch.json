@@ -7,6 +7,48 @@
       "runtimeArgs": ["start-dev.sh"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "kakeizu-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8755", "--directory", "/Users/kitaujitomohiro/Dropbox/crobo/開発/家系図_2026-05-29"],
+      "port": 8755
+    },
+    {
+      "name": "genba-pipeline",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "cd '/Users/kitaujitomohiro/Dropbox/crobo/開発/genba-pipeline' && exec npm run dev -- -p 3001"],
+      "port": 3001
+    },
+    {
+      "name": "poker-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8779", "--directory", "/Users/kitaujitomohiro/Library/Mobile Documents/com~apple~CloudDocs/個人/ポーカー"],
+      "port": 8779
+    },
+    {
+      "name": "genba-viewer",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "cd '/Users/kitaujitomohiro/projects/genba-viewer-app' && exec npm run dev -- -p 3010"],
+      "port": 3010
+    },
+    {
+      "name": "genba-lp",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8790", "--directory", "/Users/kitaujitomohiro/projects/genba-lp-site"],
+      "port": 8790
+    },
+    {
+      "name": "crobo-corp",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8791", "--directory", "/Users/kitaujitomohiro/projects/crobo-corp-site"],
+      "port": 8791
+    },
+    {
+      "name": "gas-file-server",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["/private/tmp/claude-501/-Users-kitaujitomohiro-projects-kakuzuke-check/ddb7ef06-2801-4717-8ad4-07c048687e3e/scratchpad/cors_server.py"],
+      "port": 8787
     }
   ]
 }

@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 営業データ（企業メールアドレス・送信ログ）— このリポジトリはPUBLICなので絶対に追跡しない
+/outreach
+
+# 作業中に落ちてきたファイル
+/ddg1.html
+/dsp.html
+/duo_ja.html
+/download
+/kanpo_2947204.pdf
